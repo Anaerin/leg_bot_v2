@@ -1,0 +1,9 @@
+{
+  "name": "leg_bot-v2",
+  "version": "0.0.0",
+  "description": "leg_bot v2",
+  "main": "app.js",
+  "author": {
+    "name": "Robert"
+  }
+}
