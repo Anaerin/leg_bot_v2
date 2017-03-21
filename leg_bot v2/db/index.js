@@ -16,6 +16,11 @@ var Channel = sql.define("channel", {
 	channelname: {
 		type: Sequelize.STRING,
 		allowNull: false
+	},
+	active: {
+		type: Sequelize.BOOLEAN,
+		allowNull: false,
+		default: true
 	}
 });
 

@@ -1,4 +1,4 @@
-﻿var EventEmitter = require("events");
+var EventEmitter = require("events");
 
 class Plugin extends EventEmitter {
 	constructor(client) {
@@ -20,7 +20,7 @@ class Plugin extends EventEmitter {
 		throw Error("Configuration is not implemented");
 		//return [];
 	}
-	
+
 }
 
 module.exports = Plugin;

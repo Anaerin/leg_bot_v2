@@ -13,6 +13,7 @@
     "express-session": "^1.14.2",
     "express-ws": "^2.0.0",
     "express-ws-routes": "^1.1.0",
+    "greenlock-express": "^2.0.9",
     "moment": "^2.15.2",
     "roll": "^1.2.0",
     "sequelize": "^3.24.8",

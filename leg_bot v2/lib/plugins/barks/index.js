@@ -1,8 +1,8 @@
-﻿var Plugin = require("../plugin.js");
+﻿import Plugin from "../../plugins";
 
-class Barks extends Plugin {
-	constructor(client) {
-		super(client);
+export default class Barks extends Plugin {
+	constructor(client, channel) {
+		super(client, channel);
 	}
 	static get description() {
 		return "Allows simple responses to in-chat queries, or timed repeating of static messages";
@@ -28,5 +28,3 @@ class Barks extends Plugin {
 
 	}
 }
-
-module.exports = Barks;
