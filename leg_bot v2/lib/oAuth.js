@@ -1,6 +1,6 @@
 'use strict';
 import api from 'tmi.js';
-import Settings from '../db/settings.js';
+import Settings from '../lib/settings.js';
 import Secrets from '../secrets.js';
 import EventEmitter from 'events';
 import log from './log.js';
@@ -22,12 +22,17 @@ class oAuthClient extends EventEmitter {
 		
 		// If the settings are loaded, load the token details.
 		// Otherwise, defer loading until the settings object says it's ready.
+		this.tryLoadToken();		
+	}
+	
+	// Keep trying to load the token from settings.
+	static tryLoadToken() {
 		if (Settings._loaded) {
 			this.loadToken();
 		} else {
-			Settings.on("SettingsLoaded", () => {
-				this.loadToken();
-			});
+			setTimeout(() => {
+				this.tryLoadToken();
+			}, 1000);
 		}	
 	}
 
