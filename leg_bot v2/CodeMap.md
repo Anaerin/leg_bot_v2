@@ -10,9 +10,13 @@ General utility functions and objects. For instance...
 
 Initializes and sets up logging using winston
 
-### oAuth.js ###
+### ~~oAuth.js~~ ###
 
-Handles oAuth handshakes, for TMI login details and the like.
+~~Handles oAuth handshakes, for TMI login details and the like.~~ Maybe - currently handled by twitch.js
+
+### Twitch.js ###
+
+Handles communication with twitch. Has functions for each twitch API call, which return promises.
 
 ## /plugins ##
 
@@ -24,10 +28,9 @@ Holds basic database initializers. Stores channels, users, and settings. Also lo
 
 ## /tmi ##
 
-
 ### Client.js ###
 
-Opens a connection to Twitch Chat through [TMI.js](https://docs.tmijs.org/), maintains that connection, handles global events, creates/destroys channel objects and passes channel events through to them.
+Opens a connection to Twitch Chat through [TMI.js](https://docs.tmijs.org/), maintains that connection, handles global events, creates/destroys channel objects and passes channel events through to them. Uses /lib/Twitch.js to get chat username and the like.
 
 ### Channel.js ###
 
@@ -35,6 +38,7 @@ Handles events for channels, uses settings to attach plugins.
 
 ## /web ##
 
+The web interface.
 
 ### index.js ###
 
@@ -56,6 +60,10 @@ Allows user to control leg_bot in their channel, enabling and disabling plugins 
 ## /web/public ##
 
 Shows public pages from plugins, like statistics, quotes and the like. If user is logged in, allows them to make/change votes and the like, but login is not required to view.
+
+## /web/code ##
+
+Receives oAuth codes from twitch, and passes them off to /lib/Twitch.js, which should be waiting for them.
 
 ## /web/api ##
 
