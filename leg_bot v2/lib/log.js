@@ -1,3 +1,4 @@
+'use strict';
 import winston from 'winston';
 class Logger extends winston.Logger {
 	constructor() {
@@ -12,4 +13,5 @@ class Logger extends winston.Logger {
 		this.exitOnError = false;
 	}
 }
-export default log = new Logger();
+var log = new Logger();
+export default log;
