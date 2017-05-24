@@ -1,10 +1,19 @@
 'use strict';
+/*
+Node doesn't support ES6 imports.
 import EventEmitter from 'events';
 //import Settings from '../settings.js';
 import tmi from 'tmi.js';
 import Twitch from '../lib/Twitch.js';
 import log from '../lib/log.js';
 import antiSpam from "../lib/antispam.js";
+*/
+
+var EventEmitter = require("events");
+var tmi = require("tmi.js");
+var Twitch = require("../lib/Twitch.js");
+var log = require("../lib/log.js");
+var antiSpam = require("../lib/antispam.js");
 
 class tmiClient extends EventEmitter {
 	constructor() {
@@ -78,7 +87,25 @@ class tmiClient extends EventEmitter {
 	}
 	onChat(channel, userstate, message, self) {
 		setImmediate(() => {
-			//Do async processing in here.
+			//Async processing. Antispam goes here.
+			if (!self && !userstate['mod']) {
+				// This needs to be overhauled somewhat, but for now, this will do as a placeholder of sorts.
+				
+				//This user isn't me, and it isn't a mod. Let's see if we have spam...
+				let matches = antiSpam.matchRule(message);
+				if (matches) {
+					//Oh boy! Fresh spam! Let's nuke'em!
+					let timeout = 0;
+					if (antiSpam.userTimeouts[userstate['user-id']]) timeout = antiSpam.userTimeouts[userstate['user-id']];
+					timeout++;
+					antiSpam.userTimeouts[userstate['user-id']] = timeout;
+					//record the number of times user's been timed out, then use a wonderful exponential scale to calculate how long their timeout is.
+					this.client.timeout(channel, userstate.username, Math.pow(4, timeout - 1), "AntiSpam matched rule " + matches.name);
+					this.client.say(channel, "Antispam: Timed out " + userstate['display-name'] + " for " + Math.pow(4, timeout - 1) + " seconds (" + matches.name + ")");
+					//Finally, add one to this rule's total.
+					matches.increment('count', { by: 1 });
+				}
+			}
 		});
 	}
 	onCheer(channel, userstate, message) {
@@ -112,25 +139,7 @@ class tmiClient extends EventEmitter {
 
 	}
 	onMessage(channel, userstate, message, self) {
-		setImmediate(() => {
-			//More async processing. Antispam goes here.
-			if (!self && !userstate['mod']) {
-				//This user isn't me, and it isn't a mod. Let's see if we have spam...
-				let matches = antiSpam.matchRule(message);
-				if (matches) {
-					//Oh boy! Fresh spam! Let's nuke'em!
-					let timeout = 0;
-					if (antiSpam.userTimeouts[userstate['user-id']]) timeout = antiSpam.userTimeouts[userstate['user-id']];
-					timeout++;
-					antiSpam.userTimeouts[userstate['user-id']] = timeout;
-					//record the number of times user's been timed out, then use a wonderful exponential scale to calculate how long their timeout is.
-					this.client.timeout(channel, userstate.username, Math.pow(4, timeout - 1), "AntiSpam matched rule " + matches.name);
-					this.client.say(channel, "Antispam: Timed out " + userstate['display-name'] + " for " + Math.pow(4, timeout - 1) + " seconds (" + matches.name + ")");
-					//Finally, add one to this rule's total.
-					matches.increment('count', { by: 1 });
-				}
-			}
-		});
+
 	}
 	onMod(channel, username) {
 
@@ -179,5 +188,6 @@ class tmiClient extends EventEmitter {
 	}
 }
 
+// We want a singleton, not a new instance of the class each time.
 var Client = new tmiClient();
-export default Client;
+module.exports = Client;

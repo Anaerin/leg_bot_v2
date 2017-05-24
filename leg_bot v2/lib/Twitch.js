@@ -1,9 +1,18 @@
 'use strict';
+/*
+Node doesn't support ES6 imports.
 import api from 'tmi.js';
 import Settings from '../lib/settings.js';
 import Secrets from '../secrets.js';
 import EventEmitter from 'events';
 import log from './log.js';
+*/
+
+var api = require("tmi.js").api;
+var Settings = require("./settings.js");
+var Secrets = require("../secrets.js");
+var EventEmitter = require("events");
+var log = require("./log.js");
 
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
@@ -15,7 +24,7 @@ class TwitchAPI extends EventEmitter {
 	
 	// Build the object, including it's event emitter.
 	static constructor() {
-		super();
+		//super();
 		this.clientID = Secrets.clientID;
 		this.redirectURL = Secrets.redirectURL;
 		this.scopes = ['user_read', 'user_follows_add', 'chat_login'];
@@ -395,4 +404,4 @@ class TwitchAPI extends EventEmitter {
 	}
 }
 let Twitch = new TwitchAPI();
-export default Twitch;
+module.exports = Twitch;

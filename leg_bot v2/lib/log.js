@@ -1,5 +1,11 @@
 'use strict';
+/*
+Node doesn't support ES6 imports.
 import winston from 'winston';
+*/
+
+var winston = require("winston");
+
 class Logger extends winston.Logger {
 	constructor() {
 		super();
@@ -14,4 +20,4 @@ class Logger extends winston.Logger {
 	}
 }
 var log = new Logger();
-export default log;
+module.exports = log;

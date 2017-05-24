@@ -1,4 +1,5 @@
-﻿import Plugin from "../../plugins";
+﻿// Incomplete. Placeholder for now?
+import Plugin from "../../plugins";
 
 export default class Barks extends Plugin {
 	constructor(client, channel) {

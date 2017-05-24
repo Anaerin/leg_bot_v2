@@ -1,5 +1,11 @@
 'use strict';
+
+/*
+Node doesn't support ES6 imports.
 import { Settings as DBSettings } from "../db/settings.js";
+*/
+
+var DBSettings = require("../db/setting.js");
 
 let settingsObj = {};
 
@@ -26,4 +32,4 @@ let Settings = new Proxy(settingsObj, {
 	}
 });
 
-export default Settings;
+module.exports = Settings;

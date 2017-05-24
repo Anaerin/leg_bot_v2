@@ -1,6 +1,12 @@
 "use strict";
+var log = require("./log.js");
+var AntiSpam = require("../db/antispam.js");
+
+/*
+Node doesn't support ES6 imports.
 import log from "./log.js";
 import AntiSpam from "../db/antispam.js";
+*/
 
 class AntiSpamEngine {
 	constructor() {
@@ -58,4 +64,4 @@ class AntiSpamEngine {
 	}
 }
 var antiSpam = new AntiSpamEngine();
-export default antiSpam;
+module.exports = antiSpam;

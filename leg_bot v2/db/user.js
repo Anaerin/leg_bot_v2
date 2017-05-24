@@ -1,8 +1,17 @@
 'use strict';
+var sequelize = require("sequelize");
+var Model = sequelize.Model;
+var DataType = sequelize.DataType;
+
+/*
+Node doesn't support ES6 imports.
 import { Model, DataType } from 'sequelize';
 import Channel from "./channel.js";
+*/
 
-export default class User extends Model {
+var Channel = require("./channel.js");
+
+module.exports = class User extends Model {
 	constructor() {
 		super();
 	}	
