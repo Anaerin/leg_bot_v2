@@ -19,6 +19,7 @@
     "sequelize": "^4.0.0-2",
     "tmi.js": "^1.1.2",
     "winston": "^2.3.0",
+    "winston-daily-rotate-file":"^1.4.6",
     "node-letsencrypt": "^0.0.5"
   }
 }

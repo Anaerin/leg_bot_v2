@@ -14,8 +14,6 @@ let settingsObj = {};
 
 //let _settings = new DBSettings();
 
-console.log(DBSettings);
-
 DBSettings.findAll({ raw: true }).then(settings => {
 	settings.forEach(setting => {
 		settingsObj[setting.name] = setting.value;
@@ -23,7 +21,7 @@ DBSettings.findAll({ raw: true }).then(settings => {
 	settingsObj._loaded = true;
 });
 
-let Settings = new Proxy(settingsObj, {
+var Settings = new Proxy(settingsObj, {
 	get: (target, name) => {
 		return target[name];
 	},

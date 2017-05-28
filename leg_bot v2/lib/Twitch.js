@@ -23,8 +23,9 @@ var log = require("./log.js");
 class TwitchAPI extends EventEmitter {
 	
 	// Build the object, including it's event emitter.
-	static constructor() {
-		//super();
+	constructor() {
+		super();
+		log.info("Constructing TwitchAPI");
 		this.clientID = Secrets.clientID;
 		this.redirectURL = Secrets.redirectURL;
 		this.scopes = ['user_read', 'user_follows_add', 'chat_login'];
@@ -43,7 +44,8 @@ class TwitchAPI extends EventEmitter {
 	}
 	
 	// Keep trying to load the token from settings.
-	static tryLoadToken() {
+	tryLoadToken() {
+		log.info("Trying to load token");
 		if (Settings._loaded) {
 			this.loadToken();
 		} else {
@@ -54,7 +56,7 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	// Load the token, if it's valid, or prompt for auth.
-	static loadToken() {
+	loadToken() {
 		if (Settings.oAuthToken) {
 			this.userName = Settings.userName;
 			this.oAuthToken = Settings.oAuthToken;
@@ -66,7 +68,7 @@ class TwitchAPI extends EventEmitter {
 
 	// Call the twitch API to get the details of the token we have. Need username for logging in, for instance.
 	// If we don't have a valid token, prompt to get us one.
-	static getMyTokenDetails(token) {
+	getMyTokenDetails(token) {
 		this.tokenIsValid = false;
 		this.getTokenDetails(token).then((response) => {
 			this.tokenIsValid = true;
@@ -90,7 +92,7 @@ class TwitchAPI extends EventEmitter {
 		
 	}
 	
-	static processAPIRequest(request, resolve, reject) {
+	processAPIRequest(request, resolve, reject) {
 		let req = api(request, (err, res, body) => {
 			if (err) reject(err);
 			if (body) resolve(body);
@@ -98,7 +100,7 @@ class TwitchAPI extends EventEmitter {
 	}
 
 
-	static getTokenDetails(token) {
+	getTokenDetails(token) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker([""]);
@@ -119,7 +121,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 	
-	static getChannel(token) {
+	getChannel(token) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["channel"]);
@@ -128,7 +130,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelById(ChannelID) {
+	getChannelById(ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["channel", ChannelID]);
@@ -136,7 +138,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static updateChannel(token, ChannelID, status, game, delay, channel_feed_enabled) {
+	updateChannel(token, ChannelID, status, game, delay, channel_feed_enabled) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.method = "PUT";
@@ -152,7 +154,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelEditors(token, ChannelID) {
+	getChannelEditors(token, ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["channels", ChannelID, "editors"]);
@@ -161,7 +163,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelFollowers(ChannelID, cursor) {
+	getChannelFollowers(ChannelID, cursor) {
 		return new Promise((resolve, reject) => {
 			let qs = { limit: 100 };
 			if (cursor) qs.cursor = cursor;
@@ -171,7 +173,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelTeams(ChannelID) {
+	getChannelTeams(ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["channels", ChannelID, "teams"]);
@@ -179,7 +181,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelSubscribers(token, ChannelID, page) {
+	getChannelSubscribers(token, ChannelID, page) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			let qs = { limit: 100 };
@@ -190,7 +192,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static checkChannelSubscriptionForUser(token, ChannelID, UserID) {
+	checkChannelSubscriptionForUser(token, ChannelID, UserID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["channels", ChannelID, "subscriptions", UserID]);
@@ -199,7 +201,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelVideos(ChannelID, page, broadcast_type, language) {
+	getChannelVideos(ChannelID, page, broadcast_type, language) {
 		return new Promise((resolve, reject) => {
 			let qs = { limit: 100 };
 			if (Array.isArray(broadcast_type)) qs.broadcast_type = broadcast_type.join(",");
@@ -213,7 +215,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static startChannelCommercial(token, ChannelID, duration) {
+	startChannelCommercial(token, ChannelID, duration) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.method = "POST";
@@ -224,7 +226,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static resetStreamKey(token, ChannelID) {
+	resetStreamKey(token, ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.method = "DELETE";
@@ -234,7 +236,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChannelCommunity(token, ChannelID) {
+	getChannelCommunity(token, ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.headers.Authorization = "OAuth " + token;
@@ -243,7 +245,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static setChannelCommunity(token, ChannelID, CommunityID) {
+	setChannelCommunity(token, ChannelID, CommunityID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.headers.Authorization = "OAuth " + token;
@@ -252,7 +254,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static removeChannelFromCommunity(token, ChannelID) {
+	removeChannelFromCommunity(token, ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.method = "DELETE";
@@ -262,7 +264,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChatBadgesByChannel(ChannelID) {
+	getChatBadgesByChannel(ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["chat", ChannelID, "badges"]);
@@ -270,7 +272,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getChatEmoticonsBySet(emoteset) {
+	getChatEmoticonsBySet(emoteset) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			let qs = {};
@@ -280,7 +282,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getAllChatEmoticons() {
+	getAllChatEmoticons() {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["chat", "emoticons"]);
@@ -288,7 +290,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 	
-	static getClip(slug) {
+	getClip(slug) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["clips", slug]);
@@ -296,7 +298,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getTopClips(channelNames,games,languages,period,trending,cursor) {
+	getTopClips(channelNames,games,languages,period,trending,cursor) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			let qs = { limit: 100 };
@@ -321,7 +323,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static getFollowedClips(token, cursor, trending) {
+	getFollowedClips(token, cursor, trending) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			let qs = {};
@@ -333,8 +335,8 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	static URLMaker(endpoint, querystring) {
-		let URL = "https://api.twitch.tv/kraken" + endpoint.join("/");
+	URLMaker(endpoint, querystring) {
+		let URL = "https://api.twitch.tv/kraken/" + endpoint.join("/");
 		if (Object.getOwnPropertyNames(querystring).length > 0) {
 			URL += "?";
 			let args = [];
@@ -345,9 +347,9 @@ class TwitchAPI extends EventEmitter {
 		}
 		return URL;
 	}
-	static tokenURL(scopes, state) {
+	tokenURL(scopes, state) {
 		if (scopes === "") scopes = [];
-		return this.URLMaker("oauth2/authorize", {
+		return this.URLMaker(["oauth2","authorize"], {
 			response_type: "code",
 			client_id: this.clientID,
 			redirect_uri: this.redirectURL,
@@ -364,13 +366,13 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	// Emit a code letting everything else know we need auth, and warn the user in the log.
-	static promptForToken() {
+	promptForToken() {
 		this.emit("NeedToken", this.tokenURL(this.scopes, "TMILogin"));
 		log.warn("Please Authorize me by going to " + this.tokenURL(this.scopes, "TMILogin"));
 	}
 	
 	// When we recieve a token (for this instance only)
-	static completeToken(code, state) {
+	completeToken(code, state) {
 		let req = api({
 			method: "POST",
 			url: this.URLMaker("oauth2/token"),
@@ -399,9 +401,13 @@ class TwitchAPI extends EventEmitter {
 			}
 		});
 	}
-	static hasToken() {
+	hasToken() {
+		if (!this.tokenIsValid) {
+
+		}
 		return this.tokenIsValid;
 	}
 }
-let Twitch = new TwitchAPI();
+log.info("Making a TwitchAPI");
+var Twitch = new TwitchAPI();
 module.exports = Twitch;

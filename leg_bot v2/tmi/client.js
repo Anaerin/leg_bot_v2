@@ -18,12 +18,15 @@ var antiSpam = require("../lib/antispam.js");
 class tmiClient extends EventEmitter {
 	constructor() {
 		super();
+		log.info("Constructing tmiClient...");
 		if (Twitch.tokenIsValid) {
+			log.info("Got token, doing connect");
 			this.userName = Twitch.userName;
 			this.oAuthToken = Twitch.oAuthToken;
 			this.userID = Twitch.userID;
 			this.doConnect();
 		} else {
+			log.info("No token, waiting for event.");
 			Twitch.on("GotValidToken", (Args) => {
 				this.userName = Args.userName;
 				this.oAuthToken = Args.token;
