@@ -6,21 +6,24 @@ var DataType = sequelize.DataTypes;
 /*
 Node doesn't support ES6 imports.
 import { Model, DataType } from 'sequelize';
-import Channel from './channel.js';
 */
 
-var Channel = require("./channel.js");
-
-module.exports = class Setting extends Model {
+module.exports = class AntiSpam extends Model {
+	constructor() {
+		super();
+	}
 	static init(sequelize) {
 		super.init({
 			timestamps: false,
+			id: {
+				type: DataType.INTEGER,
+				primaryKey: true
+			},
 			name: DataType.STRING,
-			value: DataType.STRING
+			regularExpression: DataType.STRING,
+			count: DataType.INTEGER.ZEROFILL.UNSIGNED
 		}, { sequelize });
-		//this.hasOne(Channel);
 	}
 	static relation(models) {
-		this.hasOne(models.Channel);
 	}
 }

@@ -14,7 +14,7 @@ class Logger extends winston.Logger {
 			new winston.transports.File({
 				filename: __dirname + "/debug.log",
 				json: false
-			});
+			})
 		];
 		this.exitOnError = false;
 	}

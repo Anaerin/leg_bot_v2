@@ -1,6 +1,8 @@
 "use strict";
 var log = require("./log.js");
-var AntiSpam = require("../db/antispam.js");
+var DB = require("../db/index.js");
+//var AntiSpam = require("../db/antispam.js");
+var AntiSpam = DB.models.AntiSpam;
 
 /*
 Node doesn't support ES6 imports.
@@ -11,7 +13,7 @@ import AntiSpam from "../db/antispam.js";
 class AntiSpamEngine {
 	constructor() {
 		this.rules = [];
-		this.userTimeouts = Map();
+		this.userTimeouts = new Map();
 		this.updateRules();
 	}
 	updateRules() {

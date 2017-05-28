@@ -4,21 +4,12 @@ var dbConfig = require("../config.js");
 var fs = require("fs");
 var Models = {};
 
-// Dynamically load all your models? Yes please!
-fs.readdir(__dirname + "/db", (err, items) => {
-	items.forEach(item => {
-		if (item.endsWith(".js") && item != "index.js") {
-			Models[item.substr(0, item.length - 4)] = require("./" + item);
-		}
-	});
-});
-
 /*
 import Channel from "./channel.js";
 import Setting from "./setting.js";
 import User from "./user.js";
 */
-
+console.log("Setting up...");
 switch (dbConfig.DBType) {
 	case 'mysql':
 		var options = {
@@ -37,7 +28,25 @@ switch (dbConfig.DBType) {
 	default:
 		throw new Error("Unrecognised DB type");
 }
+console.log("Authenticating...");
 DB.authenticate();
+let path = __dirname;
+path += "\\";
+console.log("Loading Models from", path);
+// Dynamically load all your models? Yes please!
+let items = fs.readdirSync(path)
+items.forEach(item => {
+	if (item.endsWith(".js") && item != "index.js") {
+		let modelName = item.substr(0, item.length - 3);
+		console.log("Initializing DB", modelName)
+		let model = require("./" + item);
+		Models[modelName] = model;
+		Models[modelName].init(DB);
+	}
+});
+for (let model in Models) {
+	if (Models[model].relation) Models[model].relation(DB.models);
+}
 DB.sync();
 module.exports = DB;
 //export default DB;
