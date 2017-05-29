@@ -20,7 +20,6 @@ module.exports = class Channel extends Model {
 	}
 	static init(sequelize) {
 		super.init({
-			timestamps: false,
 			id: {
 				type: DataType.INTEGER,
 				primaryKey: true

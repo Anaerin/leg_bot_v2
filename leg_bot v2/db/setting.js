@@ -14,7 +14,6 @@ var Channel = require("./channel.js");
 module.exports = class Setting extends Model {
 	static init(sequelize) {
 		super.init({
-			timestamps: false,
 			name: DataType.STRING,
 			value: DataType.STRING
 		}, { sequelize });
