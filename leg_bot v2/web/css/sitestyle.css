@@ -1,0 +1,54 @@
+body {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+}
+header {
+	background-color: blue;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+header .PageTitle {
+	background-color: black;
+	color: white;
+	font-size: xx-large;
+	padding: 0.2em;
+}
+header .PageSubTitle {
+	color: white;
+	font-size: x-large;
+	background-color: rgba(0,0,0,0.5);
+	padding: 0.2em;
+}
+header .MenuBar {
+	list-style-type: none;
+	display: flex;
+	flex-direction: row;
+	padding: 0;
+	margin: 0;
+	align-items: stretch;
+}
+header .MenuBar li {
+	padding: 0.2em;
+	border-right: 2px solid black;
+	display: flex;
+	align-items: center;
+}
+header .MenuBar li:hover {
+	background-color: rgba(0,0,0,0.5);
+}
+header .MenuBar li:active, header .MenuBar li.active {
+	background-color: rgba(0,0,0,0.25);
+}
+header .MenuBar li:last-child {
+	border-right: none;
+}
+header .MenuBar a {
+	color: white;
+	text-decoration: none;
+}
+header .MenuBar li.active a, header .MenuBar li:active a {
+	text-decoration: underline;
+}

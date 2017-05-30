@@ -8,12 +8,14 @@ import EventEmitter from 'events';
 import log from './log.js';
 */
 
-var api = require("tmi.js").api;
+var tmi = require("tmi.js");
+var client = new tmi.client();
+var api = client.api;
 var Settings = require("./settings.js");
 var Secrets = require("../secrets.js");
 var EventEmitter = require("events");
 var log = require("./log.js");
-
+log.info("API?", typeof api);
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
  * So we can connect with tmi.
@@ -28,7 +30,7 @@ class TwitchAPI extends EventEmitter {
 		log.info("Constructing TwitchAPI");
 		this.clientID = Secrets.clientID;
 		this.redirectURL = Secrets.redirectURL;
-		this.scopes = ['user_read', 'user_follows_add', 'chat_login'];
+		this.scopes = ['user_read', 'user_follows_edit', 'chat_login'];
 		this.tokenIsValid = false;
 		this.baseRequest = {
 			method: "get",
@@ -71,10 +73,12 @@ class TwitchAPI extends EventEmitter {
 	getMyTokenDetails(token) {
 		this.tokenIsValid = false;
 		this.getTokenDetails(token).then((response) => {
+			log.debug("TokenDetails contains", response);
 			this.tokenIsValid = true;
 			for (let scope of this.scopes) {
-				if (!response.scopes.contains(scope)) {
+				if (!response.scopes.includes(scope)) {
 					this.tokenIsValid = false;
+					log.error("Missing scope %s", scope);
 				}
 			}
 			if (this.tokenIsValid) {
@@ -105,15 +109,25 @@ class TwitchAPI extends EventEmitter {
 			let request = this.baseRequest;
 			request.url = this.URLMaker([""]);
 			request.headers.Authorization = "OAuth " + token;
+			log.info("Requesting token details", request);
 			let req = api(request, (err, res, body) => {
 				if (err) { reject(err); }
+				log.debug("Got the following token", JSON.stringify(body));
 				if (body && body.token && body.token.valid) {
-					resolve({
-						token: token,
-						userName: body.token.user_name,
-						userID: body.token.user_id,
-						scopes: body.authorization.scopes
-					});
+					if (body.token.authorization) {
+						resolve({
+							token: token,
+							userName: body.token.user_name,
+							userID: body.token.user_id,
+							scopes: body.token.authorization.scopes
+						});
+					} else {
+						resolve({
+							token: token,
+							userName: body.token.user_name,
+							userID: body.token.user_id,
+						});
+					}
 				} else {
 					reject(body);
 				}
@@ -335,7 +349,7 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
-	URLMaker(endpoint, querystring) {
+	URLMaker(endpoint, querystring = {}) {
 		let URL = "https://api.twitch.tv/kraken/" + endpoint.join("/");
 		if (Object.getOwnPropertyNames(querystring).length > 0) {
 			URL += "?";
@@ -373,33 +387,42 @@ class TwitchAPI extends EventEmitter {
 	
 	// When we recieve a token (for this instance only)
 	completeToken(code, state) {
-		let req = api({
-			method: "POST",
-			url: this.URLMaker("oauth2/token"),
-			json: true,
-			headers: {
-				"Accept": "application/vnd.twitchtv.v5+json",
-				"Authorization": "OAuth" + this.oAuthToken,
-				"Client-ID": this.clientID
-			},
-			form: {
-				"client_id": this.clientID,
-				"client_secret": Secrets.clientSecret,
-				"grant_type": "authorization_code",
-				"redirect_uri": this.redirectURL,
-				"code": code
-			}
-		}, (err, res, body) => {
-			if (body && body.access_token) {
-				if (state == "TMILogin") {
-					this.getMyTokenDetails(this.oAuthToken);
-				} else {
-					this.getTokenDetails(body.access_token).then((token) => {
-						this.emit("TokenReceieved", token);
-					});
+		log.debug("Received token code", code);
+		return new Promise((resolve, reject) => {
+			let req = api({
+				method: "POST",
+				url: this.URLMaker(["oauth2", "token"], {}),
+				json: true,
+				headers: {
+					"Accept": "application/vnd.twitchtv.v5+json",
+					"Authorization": "OAuth" + this.oAuthToken,
+					"Client-ID": this.clientID
+				},
+				qs: {
+					"client_id": this.clientID,
+					"client_secret": Secrets.clientSecret,
+					"grant_type": "authorization_code",
+					"redirect_uri": this.redirectURL,
+					"code": code,
+					"_method": "post"
 				}
-			}
-		});
+			}, (err, res, body) => {
+				if (body && body.access_token) {
+					if (state == "TMILogin") {
+						this.getMyTokenDetails(body.access_token);
+					} else {
+						this.getTokenDetails(body.access_token).then((token) => {
+							this.emit("TokenReceieved", token);
+							resolve({ token: token, valid: true });
+						});
+					}
+				} else if (body) {
+					reject(body);
+				} else {
+					reject(err);
+				}
+			});
+		});	
 	}
 	hasToken() {
 		if (!this.tokenIsValid) {

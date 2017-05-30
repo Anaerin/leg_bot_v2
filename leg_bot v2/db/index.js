@@ -41,6 +41,7 @@ let items = fs.readdirSync(path)
 items.forEach(item => {
 	if (item.endsWith(".js") && item != "index.js") {
 		let modelName = item.substr(0, item.length - 3);
+		log.info("Loading DB model %s...", modelName);
 		let model = require("./" + item);
 		Models[modelName] = model;
 		Models[modelName].init(DB);

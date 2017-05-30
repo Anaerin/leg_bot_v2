@@ -27,8 +27,9 @@ var Settings = new Proxy(settingsObj, {
 	},
 	set: (target, name, value) => {
 		DBSettings.findOrCreate({ where: { name: name } }).spread((setting, created) => {
-			setting.value = value;
-			setting.save().then(function () { });
+			if (created) setting['name'] = name;
+			setting['value'] = value;
+			setting.save();
 		});
 		target[name] = value;
 		return true;

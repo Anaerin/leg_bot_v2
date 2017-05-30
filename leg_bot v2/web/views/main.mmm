@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Bipedal Bot{{#title}} -- {{title}}{{/title}}</title>
+		<link href="/css/sitestyle.css" rel="stylesheet" type="text/css" />
+		{{head}}
+	</head>
+	<body>
+		<header>
+			<div class="PageTitle">Bipedal Bot</div>
+			{{#title}}<div class="PageSubTitle">{{title}}</div>{{/title}}
+			{{#loggedIn}}Logged in as {{userName}}{{/loggedIn}}
+			<ul class="MenuBar">
+				{{#menu}}
+					<li{{#active}} class="active"{{/active}}><a href="{{url}}">{{name}}</a></li>
+				{{/menu}}
+			</ul>
+		</header>
+		{{& content}}
+	</body>
+</html>

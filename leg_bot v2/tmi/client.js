@@ -43,12 +43,13 @@ class tmiClient extends EventEmitter {
 			},
 			identity: {
 				username: this.userName,
-				password: "oauth:" + this.token
+				password: "oauth:" + this.oAuthToken
 			},
 			channels: ["#" + this.userName],
 			logger: log
 		};
 		this.client = new tmi.client(options);
+		this.bindEvents();
 		this.client.connect();
 	}
 	bindEvents() {
@@ -192,5 +193,5 @@ class tmiClient extends EventEmitter {
 }
 
 // We want a singleton, not a new instance of the class each time.
-var Client = new tmiClient();
+const Client = new tmiClient();
 module.exports = Client;
