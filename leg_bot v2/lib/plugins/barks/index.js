@@ -1,5 +1,7 @@
-﻿// Incomplete. Placeholder for now?
-import Plugin from "../../plugins";
+﻿"use strict";
+// Incomplete. Placeholder for now?
+
+const Plugin = require("../").Plugin;
 
 export default class Barks extends Plugin {
 	constructor(client, channel) {

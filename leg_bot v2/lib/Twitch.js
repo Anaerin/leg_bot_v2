@@ -8,13 +8,16 @@ import EventEmitter from 'events';
 import log from './log.js';
 */
 
-var tmi = require("tmi.js");
-var client = new tmi.client();
-var api = client.api;
-var Settings = require("./settings.js");
-var Secrets = require("../secrets.js");
-var EventEmitter = require("events");
-var log = require("./log.js");
+const tmi = require("tmi.js");
+const client = new tmi.client();
+const Request = require("request");
+//const api = client.api;
+const api = Request;
+const Settings = require("./settings.js");
+const Secrets = require("../secrets.js");
+const EventEmitter = require("events");
+const log = require("./log.js");
+
 log.info("API?", typeof api);
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
@@ -34,6 +37,7 @@ class TwitchAPI extends EventEmitter {
 		this.tokenIsValid = false;
 		this.baseRequest = {
 			method: "get",
+			json: true,
 			headers: {
 				"Client-ID": this.clientID,
 				"Accept": "application/vnd.twitchtv.v5+json"
@@ -103,6 +107,13 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
+	getUserByID(userID) {
+		return new Promise((resolve, reject) => {
+			let request = this.baseRequest;
+			request.url = this.URLMaker(["users", userID]);
+			this.processAPIRequest(request, resolve, reject);
+		});
+	}
 
 	getTokenDetails(token) {
 		return new Promise((resolve, reject) => {

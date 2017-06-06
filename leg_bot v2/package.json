@@ -4,7 +4,13 @@
   "description": "leg_bot v2",
   "main": "app.js",
   "author": {
-    "name": "Robert"
+    "name": "Robert Johnston",
+    "email": "anaerin@gmail.com"
+  },
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "Anaerin/leg_bot_v2"
   },
   "dependencies": {
     "auto-load": "^2.1.0",
@@ -26,6 +32,8 @@
     "multer":"^1.3.0",
     "mmm":"^0.2.2",
     "connect-session-sequelize":"^4.1.0",
-    "sqlite3":"^3.1.8"
+    "sqlite3":"^3.1.8",
+    "jws": "^3.1.4",
+    "request":"^2.81.0"
   }
 }

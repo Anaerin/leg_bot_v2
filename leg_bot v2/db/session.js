@@ -21,7 +21,7 @@ module.exports = class Session extends Model {
 			userId: DataType.STRING,
 			expires: DataType.DATE,
 			data: DataType.STRING(50000)
-		}, { sequelize });
+		}, { sequelize, timestamps: false });
 	}
 	static relation(models) {
 	}

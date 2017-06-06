@@ -9,7 +9,7 @@
 		<header>
 			<div class="PageTitle">Bipedal Bot</div>
 			{{#title}}<div class="PageSubTitle">{{title}}</div>{{/title}}
-			{{#loggedIn}}Logged in as {{userName}}{{/loggedIn}}
+			{{#loggedIn}}<div class="LoginStatus">Logged in as {{displayName}}<img src="{{logo}}" alt="{{displayName}}'s logo"/></div>{{/loggedIn}}
 			<ul class="MenuBar">
 				{{#menu}}
 					<li{{#active}} class="active"{{/active}}><a href="{{url}}">{{name}}</a></li>

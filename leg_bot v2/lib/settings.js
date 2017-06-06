@@ -7,31 +7,47 @@ import { Settings as DBSettings } from "../db/settings.js";
 
 //var DBSettings = require("../db/setting.js");
 
-var DB = require("../db/index.js");
-var DBSettings = DB.models.Setting;
+const DB = require("../db/index.js");
+const DBSettings = DB.models.Setting;
+const log = require("./log.js");
 
-let settingsObj = {};
+const settingsObj = new Map();
+
 
 //let _settings = new DBSettings();
 
-DBSettings.findAll({ raw: true }).then(settings => {
+DBSettings.findAll().then(settings => {
 	settings.forEach(setting => {
-		settingsObj[setting.name] = setting.value;
+		//settingsObj[setting.name] = setting.value;
+		settingsObj.set(setting.name,setting);
 	});
-	settingsObj._loaded = true;
+	settingsObj.set("_loaded",true);
 });
 
-var Settings = new Proxy(settingsObj, {
+const Settings = new Proxy(settingsObj, {
 	get: (target, name) => {
-		return target[name];
+		if (name === "_loaded" && target.get("_loaded")) return true;
+		if (target.has(name)) return target.get(name)["value"];
+		return false;
 	},
 	set: (target, name, value) => {
+		if (target.has(name)) {
+			let obj = target.get(name);
+			obj["value"] = value;
+			obj.save();
+		} else {
+			DBSettings.create({ name: name, value: value }).then(setting => {
+				target.set(name, setting);
+				setting.save();
+			});
+		}
+		/* 
 		DBSettings.findOrCreate({ where: { name: name } }).spread((setting, created) => {
 			if (created) setting['name'] = name;
 			setting['value'] = value;
-			setting.save();
+			//setting.save();
 		});
-		target[name] = value;
+		*/
 		return true;
 	}
 });

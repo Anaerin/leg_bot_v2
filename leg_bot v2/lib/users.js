@@ -1,8 +1,9 @@
 'use strict';
-import Sequelize from "sequelize";
-import User from "../db/user.js";
+const sequelize = require("sequelize");
+const DB = require("../db/index.js");
+const User = DB.model.User;
 
-class Users {
+class UsersHandler {
 	constructor() {
 		this.UserNames = new Map();
 		this.UserIDs = new Map();
@@ -33,4 +34,16 @@ class Users {
 			});
 		}
 	}
+	create(userID, userName) {
+		User.findOrCreate({ where: { userID: userID, name: userName }, defaults: { userID: userID, name: userName } }).spread((user, created) => {
+			this.UserNames.set(user.userName, user);
+			this.UserIDs.set(user.userID, user);
+			user.save().then(() => {
+				return user;
+			});
+		});
+	}
 }
+
+const Users = new UsersHandler();
+module.exports = Users;

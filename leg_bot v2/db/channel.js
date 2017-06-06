@@ -22,11 +22,17 @@ module.exports = class Channel extends Model {
 		super.init({
 			id: {
 				type: DataType.INTEGER,
+				autoIncrement: true,
 				primaryKey: true
 			},
+			channelID: {
+				type: DataType.STRING,
+				allowNull: false
+			},
 			name: DataType.STRING,
-			active: DataType.STRING
-		}, { sequelize });
+			active: DataType.BOOLEAN,
+			follow: DataType.BOOLEAN
+		}, { sequelize, timestamps: false });
 		//this.belongsTo(User);
 		//this.hasMany(Setting);
 	}

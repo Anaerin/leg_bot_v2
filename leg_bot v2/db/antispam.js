@@ -21,7 +21,7 @@ module.exports = class AntiSpam extends Model {
 			name: DataType.STRING,
 			regularExpression: DataType.STRING,
 			count: DataType.INTEGER.ZEROFILL.UNSIGNED
-		}, { sequelize });
+		}, { sequelize, timestamps: false });
 	}
 	static relation(models) {
 	}

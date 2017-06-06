@@ -21,10 +21,14 @@ module.exports = class User extends Model {
 				type: DataType.INTEGER,
 				primaryKey: true
 			},
-			name: DataType.STRING,
+			userID: DataType.STRING,
+			userName: DataType.STRING,
+			displayName: DataType.STRING,
+			logo: DataType.STRING,
 			token: DataType.STRING,
-			lastSeen: DataType.DATE(6)
-		}, { sequelize });
+			bio: DataType.STRING,
+			lastSeen: DataType.DATE
+		}, { sequelize, timestamps: false });
 		//this.hasOne(Channel, { as: "lastSeenChannel" });
 	}
 	static relation(models) {

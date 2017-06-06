@@ -16,7 +16,7 @@ module.exports = class Setting extends Model {
 		super.init({
 			name: DataType.STRING,
 			value: DataType.STRING
-		}, { sequelize });
+		}, { sequelize, timestamps: false });
 		//this.hasOne(Channel);
 	}
 	static relation(models) {
