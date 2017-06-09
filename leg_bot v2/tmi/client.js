@@ -53,44 +53,53 @@ class tmiClient extends EventEmitter {
 		this.client.connect();
 	}
 	bindEvents() {
-		this.client.on("action", this.onAction);
-		this.client.on("ban", this.onBan);
+		// Declare what events we want to listen for.
+		let events = [
+			"Action",
+			"Ban",
+			"Chat",
+			"Cheer",
+			"ClearChat",
+			"Connected",
+			"Connecting",
+			"Disconnected",
+			"EmoteSets",
+			"Hosted",
+			"Hosting",
+			"Join",
+			"Logon",
+			"Message",
+			"Mod",
+			"Mods",
+			"Notice",
+			"Part",
+			"Ping",
+			"Pong",
+			"Reconnect",
+			"ReSub",
+			"RoomState",
+			"ServerChange",
+			"Subscription",
+			"Timeout",
+			"Unhost",
+			"Unmod",
+			"Whisper"
+		];
+		// For each event...
+		events.forEach(ev => {
+			// Bind to the event (in lower case, because TMI doesn't believe in capitalization)
+			this.client.on(ev.toLowerCase(), () => {
+				// Then schedule execution, with the arguments of this event forwarded
+				setImmediate(() => {
+					// And emit an event for it from us, with the arguments preserved.
+					this.emit("on" + ev, ...arguments);
+				}, ...arguments);
+			});
+		});
 		this.client.on("chat", this.onChat);
-		this.client.on("cheer", this.onCheer);
-		this.client.on("clearchat", this.onClearChat);
-		this.client.on("connected", this.onConnected);
-		this.client.on("connecting", this.onConnecting);
-		this.client.on("disconnected", this.onDisconnected);
-		this.client.on("emotesets", this.onEmoteSets);
-		this.client.on("hosted", this.onHosted);
-		this.client.on("hosting", this.onHosting);
-		this.client.on("join", this.onJoin);
-		this.client.on("logon", this.onLogon);
-		this.client.on("message", this.onMessage);
-		this.client.on("mod", this.onMod);
-		this.client.on("mods", this.onMods);
-		this.client.on("notice", this.onNotice);
-		this.client.on("part", this.onPart);
-		this.client.on("ping", this.onPing);
-		this.client.on("pong", this.onPong);
-		this.client.on("reconnect", this.onReconnect);
-		this.client.on("resub", this.onResub);
-		this.client.on("roomstate", this.onRoomstate);
-		this.client.on("serverchange", this.onServerChange);
-		this.client.on("subscription", this.onSubscription);
-		this.client.on("timeout", this.onTimeout);
-		this.client.on("unhost", this.onUnhost);
-		this.client.on("unmod", this.onUnmod);
-		this.client.on("whisper", this.onWhisper);
-	}
-	onAction(channel, userstate, message, self) {
-
-	}
-	onBan(channel, username, reason) {
-
 	}
 	onChat(channel, userstate, message, self) {
-		setImmediate(() => {
+		setImmediate((channel, userstate, message, self) => {
 			//Async processing. Antispam goes here.
 			if (!self && !userstate['mod']) {
 				// This needs to be overhauled somewhat, but for now, this will do as a placeholder of sorts.
@@ -110,85 +119,8 @@ class tmiClient extends EventEmitter {
 					matches.increment('count', { by: 1 });
 				}
 			}
-		});
-	}
-	onCheer(channel, userstate, message) {
-
-	}
-	onClearChat(channel) {
-
-	}
-	onConnected(address, port) {
-
-	}
-	onConnecting(address, port) {
-
-	}
-	onDisconnected(reason) {
-
-	}
-	onEmoteSets(sets, obj) {
-
-	}
-	onHosted(channel, username, viewers, autohost) {
-
-	}
-	onHosting(channel, target, viewers) {
-
-	}
-	onJoin(channel, username, self) {
-
-	}
-	onLogon() {
-
-	}
-	onMessage(channel, userstate, message, self) {
-
-	}
-	onMod(channel, username) {
-
-	}
-	onMods(channel, mods) {
-
-	}
-	onNotice(channel, msgid, message) {
-
-	}
-	onPart(channel, username, self) {
-
-	}
-	onPing() {
-
-	}
-	onPong(latency) {
-
-	}
-	onReconnect() {
-
-	}
-	onResub(channel, username, months, message, userstate, methods) {
-
-	}
-	onRoomstate(channel, state) {
-
-	}
-	onServerChange(channel) {
-
-	}
-	onSubscription(channel, username, method, message, userstate) {
-
-	}
-	onTimeout(channel, username, reason, duration) {
-
-	}
-	onUnhost(channel, viewers) {
-
-	}
-	onUnmod(channel, username) {
-
-	}
-	onWhisper(from, userstate, message, self) {
-
+			this.emit("onChat", ...arguments);
+		},...arguments);
 	}
 }
 
