@@ -10,7 +10,7 @@ import { Settings as DBSettings } from "../db/settings.js";
 const DB = require("../db/index.js");
 const DBSettings = DB.models.Setting;
 const log = require("./log.js");
-
+const config = require("../config.js");
 const settingsObj = new Map();
 
 
@@ -28,6 +28,7 @@ const Settings = new Proxy(settingsObj, {
 	get: (target, name) => {
 		if (name === "_loaded" && target.get("_loaded")) return true;
 		if (target.has(name)) return target.get(name)["value"];
+		if (config.hasOwnProperty(name)) return config[name];
 		return false;
 	},
 	set: (target, name, value) => {

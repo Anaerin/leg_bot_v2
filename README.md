@@ -4,7 +4,7 @@ A newer, faster, better, more extensible version of leg_bot. Re-written from the
 
 ## So what does it do?
 
-Right now? Crashes. Horribly. After spitting out a URL for a token (that won't work, as it crashes). What can I say, it's early days, and I'm still working on this.
+Right now? Spits out a URL for a token, that will allow it to connect to TMI (Which it will do, and join it's own channel). Beyond that, not much at all. What can I say, it's early days, and I'm still working on this.
 
 ## What's the plan?
 

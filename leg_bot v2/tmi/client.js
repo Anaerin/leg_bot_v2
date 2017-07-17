@@ -9,11 +9,12 @@ import log from '../lib/log.js';
 import antiSpam from "../lib/antispam.js";
 */
 
-var EventEmitter = require("events");
-var tmi = require("tmi.js");
-var Twitch = require("../lib/Twitch.js");
-var log = require("../lib/log.js");
-var antiSpam = require("../lib/antispam.js");
+const EventEmitter = require("events");
+const tmi = require("tmi.js");
+const Twitch = require("../lib/Twitch.js");
+const log = require("../lib/log.js");
+const antiSpam = require("../lib/antispam.js");
+const Settings = require("../lib/settings.js");
 
 class tmiClient extends EventEmitter {
 	constructor() {
@@ -54,16 +55,17 @@ class tmiClient extends EventEmitter {
 	}
 	bindEvents() {
 		// Declare what events we want to listen for.
-		let events = [
+		const allEvents = [
 			"Action",
 			"Ban",
-			"Chat",
 			"Cheer",
 			"ClearChat",
 			"Connected",
 			"Connecting",
 			"Disconnected",
+			"EmoteOnly",
 			"EmoteSets",
+			"FollowersOnly",
 			"Hosted",
 			"Hosting",
 			"Join",
@@ -75,25 +77,64 @@ class tmiClient extends EventEmitter {
 			"Part",
 			"Ping",
 			"Pong",
+			"R9kBeta",
 			"Reconnect",
 			"ReSub",
 			"RoomState",
 			"ServerChange",
+			"SlowMode",
 			"Subscription",
 			"Timeout",
 			"Unhost",
 			"Unmod",
 			"Whisper"
 		];
+		const channelEventList = [
+			"Action",
+			"Ban",
+			"Chat",
+			"Cheer",
+			"ClearChat",
+			"EmoteOnly",
+			"FollowersOnly",
+			"Hosted",
+			"Hosting",
+			"Join",
+			"Message",
+			"Mod",
+			"Mods",
+			"Notice",
+			"Part",
+			"R9kBeta",
+			"ReSub",
+			"RoomState",
+			"ServerChange",
+			"SlowMode",
+			"Subscription",
+			"Timeout",
+			"Unhost",
+			"Unmod"
+		];
 		// For each event...
-		events.forEach(ev => {
+		allEvents.forEach(ev => {
 			// Bind to the event (in lower case, because TMI doesn't believe in capitalization)
 			this.client.on(ev.toLowerCase(), () => {
 				// Then schedule execution, with the arguments of this event forwarded
 				setImmediate(() => {
 					// And emit an event for it from us, with the arguments preserved.
-					this.emit("on" + ev, ...arguments);
+					this.emit(ev, ...arguments);
 				}, ...arguments);
+			});
+		});
+		// For all the events that reference a channel...
+		channelEventList.forEach(ev => {
+			// Bind to the event, like above...
+			this.client.on(ev.toLowerCase(), () => {
+				// Then schedule execution asynchronously...
+				setImmediate(() => {
+					// And emit an event for this event and channel combination.
+					this.emit(arguments[0] + " " + ev, ...arguments);
+				});
 			});
 		});
 		this.client.on("chat", this.onChat);
@@ -119,7 +160,18 @@ class tmiClient extends EventEmitter {
 					matches.increment('count', { by: 1 });
 				}
 			}
-			this.emit("onChat", ...arguments);
+
+			this.emit("Chat", ...arguments);
+			this.emit(arguments[0] + " " + "Chat", ...arguments);
+
+			if (!self) {
+				if (String(message).startsWith(Settings.CommandPrefix)) {
+					let command = String(message).match("\\" + Settings.CommandPrefix + "(\w+)");
+					if (command.length > 0) {
+						this.emit(arguments[0] + " Command", command[0], ...arguments);
+					}
+				}
+			}
 		},...arguments);
 	}
 }
