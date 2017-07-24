@@ -25,10 +25,6 @@ module.exports = class Channel extends Model {
 				autoIncrement: true,
 				primaryKey: true
 			},
-			channelID: {
-				type: DataType.STRING,
-				allowNull: false
-			},
 			name: DataType.STRING,
 			active: DataType.BOOLEAN,
 			follow: DataType.BOOLEAN

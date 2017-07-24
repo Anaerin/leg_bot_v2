@@ -4,7 +4,8 @@ const EventEmitter = require("events");
 class Plugin extends EventEmitter {
 	constructor(client, channel) {
 		super();
-
+		this.client = client;
+		this.channel = channel;
 	}
 	static get description() {
 		throw new SyntaxError("Description is not defined!");
@@ -15,7 +16,7 @@ class Plugin extends EventEmitter {
 	static get configuration() {
 		throw new SyntaxError("Configuration is not defined");
 	}
-	static database(DB) {
+	static initDatabase(DB) {
 		return true;
 	}
 	onEnable() {

@@ -33,7 +33,13 @@ class Logger extends winston.Logger {
 var log = new Logger();
 module.exports = log;
 */
-
+winston.transports.Console.prototype.log = function (level, message, meta, callback) {
+	const output = require("winston/lib/winston/common").log(Object.assign({}, this, {
+		level, message, meta
+	}));
+	console[level in console ? level : 'log'](output);
+	setImmediate(callback, null, true);
+}
 var log = new (winston.Logger)({
 	transports: [
 		new (winston.transports.Console)({

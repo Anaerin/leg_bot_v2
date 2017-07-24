@@ -5,6 +5,44 @@ const express = require("express");
 const DB = require("../../db");
 
 let app = module.exports = new express.Router({ mergeParams: true });
+
+function processUser(user) {
+	log.info("Got user details", user);
+	DB.model("User").findOrCreate({
+		where: {
+			userID: req.session.userID
+		}, defaults: {
+			userID: req.session.userID
+		}
+	}).spread((founduser, created) => {
+		founduser.userName = req.session.userName;
+		founduser.displayName = user.display_name;
+		if (user.logo) founduser.logo = user.logo;
+		founduser.bio = user.bio;
+		founduser.token = req.session.token;
+		founduser.save();
+	});
+	req.session.displayName = user.display_name;
+	req.session.logo = user.logo || "https://static-cdn.jtvnw.net/jtv_user_pictures/xarth/404_user_300x300.png";
+	req.session.save();
+}
+
+function processChannel(channel) {
+	log.info("Got Channel", channel);
+	DB.model("Channel").findOrCreate({
+		where: {
+			userId: req.session.userID
+		}, defaults: {
+			userId: req.session.userID
+		}
+	}).spread((foundChannel, created) => {
+		if (!created && foundChannel.name != channel.name) {
+			foundChannel.name = channel.name;
+			foundChannel.save();
+		}
+	});
+}
+
 app.get("/$", (req, res) => {
 	let twitchAuth = req.query.code;
 	let twitchState = req.query.state;
@@ -15,40 +53,17 @@ app.get("/$", (req, res) => {
 				req.session.loggedIn = true;
 				req.session.userName = response.token.userName;
 				req.session.userID = response.token.userID;
-				Twitch.getUserByID(req.session.userID).then((user, err) => {
-					if (err) {
-						res.render("main", {
-							title: "Error",
-							content: "An error occurred finding user details by ID. Please inform Anaerin.\n<pre>" + JSON.stringify(err) + "</pre>"
-						});
-					} else {
-						log.info("Got user details", user);
-						DB.model("User").findOrCreate({
-							where: {
-								userID: req.session.userID
-							}, defaults: {
-								userID: req.session.userID
-							}
-						}).spread((founduser, created) => {
-							founduser.userName = req.session.userName;
-							founduser.displayName = user.display_name;
-							if (user.logo) founduser.logo = user.logo;
-							founduser.bio = user.bio;
-							founduser.token = req.session.token;
-							founduser.save();
-						});
-						req.session.displayName = user.display_name;
-						req.session.logo = user.logo || "https://static-cdn.jtvnw.net/jtv_user_pictures/xarth/404_user_300x300.png";
-						req.session.save((err) => {
-							if (err) {
-								res.render("main", {
-									title: "Error",
-									content: "An error occurred saving session. Please inform Anaerin.\n<pre>" + JSON.stringify(err) + "</pre>"
-								});
-							} else res.redirect(req.session.returnURL || "/");
-						});
-					}	
+				let p = Promise.all(
+					Twitch.getUserByID(req.session.userID).then(processUser),
+					Twitch.getChannelById(req.session.userID).then(processChannel)
+				).catch((err) => {
+					res.status(500);
+					res.render("main", {
+						title: "Error",
+						content: "An error occurred fetching user details - <pre>" + JSON.stringify + "</pre>"
+					});
 				});
+				
 			} else {
 				res.status(500);
 				res.render("main", {

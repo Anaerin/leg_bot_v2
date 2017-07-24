@@ -27,7 +27,8 @@ module.exports = class User extends Model {
 			logo: DataType.STRING,
 			token: DataType.STRING,
 			bio: DataType.STRING,
-			lastSeen: DataType.DATE
+			lastSeen: DataType.DATE,
+			scopes: DataType.STRING
 		}, { sequelize, timestamps: false });
 		//this.hasOne(Channel, { as: "lastSeenChannel" });
 	}

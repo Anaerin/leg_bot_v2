@@ -23,7 +23,7 @@ class pluginHandler extends EventEmitter {
 			throw new TypeError("Plugin already registered under that name");
 		} else {
 			this.plugins.set(name, plugin);
-			plugin.database(DB);
+			plugin.initDatabase(DB);
 		}
 	}
 	call(name) {

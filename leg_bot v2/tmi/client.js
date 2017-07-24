@@ -15,10 +15,13 @@ const Twitch = require("../lib/Twitch.js");
 const log = require("../lib/log.js");
 const antiSpam = require("../lib/antispam.js");
 const Settings = require("../lib/settings.js");
+const Channel = require("./channel.js");
+const DB = require("../db");
 
 class tmiClient extends EventEmitter {
 	constructor() {
 		super();
+		this.channels = {};
 		log.info("Constructing tmiClient...");
 		if (Twitch.tokenIsValid) {
 			log.info("Got token, doing connect");
@@ -37,6 +40,17 @@ class tmiClient extends EventEmitter {
 		}
 	}
 	doConnect() {
+		let channelsToJoin = ["#" + this.userName];
+		DB.models.Channel.findAll({
+			where: {
+				active: true
+			}, include: [ DB.models.User ]
+		}).then((channels) => {
+			channels.forEach((channel) => {
+				this.channels[channel.name] = channel;
+				channelsToJoin.push("#" + channel.name);
+			});
+		});
 		var options = {
 			connection: {
 				reconnect: true,
@@ -46,7 +60,7 @@ class tmiClient extends EventEmitter {
 				username: this.userName,
 				password: "oauth:" + this.oAuthToken
 			},
-			channels: ["#" + this.userName],
+			channels: channelsToJoin,
 			logger: log
 		};
 		this.client = new tmi.client(options);
@@ -138,6 +152,21 @@ class tmiClient extends EventEmitter {
 			});
 		});
 		this.client.on("chat", this.onChat);
+		this.client.on("join", this.onJoin);
+	}
+	onJoin(channel, username, self) {
+		if (self) {
+			// I've just joined a channel. Do I have a reference to it already?
+			if (this.channels.hasOwnProperty(channel) && this.channels[channel].channel) {
+				// I do... That's odd.
+			} else if (this.channels.hasOwnProperty(channel)) {
+				// Okay, so I have this channel as a DB object. Add the JS object to it.
+				this.channels[channel].channel = new Channel(this.client, channel);
+			} else {
+				// I've never seen this channel at all. Why am I joining it? It's probably mine
+				// Best not to do anything.				
+			}
+		}
 	}
 	onChat(channel, userstate, message, self) {
 		setImmediate((channel, userstate, message, self) => {

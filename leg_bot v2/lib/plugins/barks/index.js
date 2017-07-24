@@ -1,9 +1,49 @@
 ﻿"use strict";
 // Incomplete. Placeholder for now?
 
-const Plugin = require("../").Plugin;
+const Plugin = require("../plugin.js");
+const Sequelize = require("sequelize");
+const Model = Sequelize.Model;
+const DataType = Sequelize.DataTypes;
 
-export default class Barks extends Plugin {
+class Bark extends Model {
+	constructor() {
+		super();
+	}
+	static init(sequelize) {
+		super.init({
+			id: {
+				type: DataType.INTEGER,
+				primaryKey: true
+			},
+			command: {
+				type: DataType.STRING(32),
+				allowNull: false,
+				validate: {
+					isAlpha: true
+				}
+			},
+			message: DataType.STRING(500),
+			modsOnly: {
+				type: DataType.BOOLEAN,
+				defaultValue: true
+			},
+			interval: {
+				type: DataType.INTEGER,
+				defaultValue: 0,
+				validate: {
+					isInt: true
+				}
+			}
+		}, { sequelize, timestamps: false });
+
+	}
+	static relation(models) {
+		this.belongsTo(models.Channel);
+	}
+}
+
+class Barks extends Plugin {
 	constructor(client, channel) {
 		super(client, channel);
 	}
@@ -27,7 +67,13 @@ export default class Barks extends Plugin {
 			}
 		];
 	}
+	static initDatabase(DB) {
+		Bark.init(DB);
+		Bark.relation(DB.models);
+		//var bark = new Bark();		
+	}
 	EditBarks() {
-
+		
 	}
 }
+module.exports = Barks;
