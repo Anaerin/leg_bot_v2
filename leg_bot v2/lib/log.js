@@ -39,7 +39,7 @@ winston.transports.Console.prototype.log = function (level, message, meta, callb
 	}));
 	console[level in console ? level : 'log'](output);
 	setImmediate(callback, null, true);
-}
+};
 var log = new (winston.Logger)({
 	transports: [
 		new (winston.transports.Console)({

@@ -51,4 +51,4 @@ module.exports = class Channel extends Model {
 	static relation(models) {
 		this.belongsTo(models.User);
 	}
-}
+};
