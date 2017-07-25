@@ -26,8 +26,24 @@ module.exports = class Channel extends Model {
 				primaryKey: true
 			},
 			name: DataType.STRING,
+			broadcasterLanguage: DataType.STRING,
+			displayName: DataType.STRING,
+			followers: DataType.INTEGER,
+			game: DataType.STRING,
+			language: DataType.STRING,
+			logo: DataType.STRING,
+			mature: DataType.BOOLEAN,
+			partner: DataType.BOOLEAN,
+			profileBanner: DataType.STRING,
+			profileBannerBackgroundColor: DataType.STRING,
+			status: DataType.STRING,
+			url: DataType.STRING,
+			videoBanner: DataType.STRING,
+			views: DataType.INTEGER,
 			active: DataType.BOOLEAN,
-			follow: DataType.BOOLEAN
+			follow: DataType.BOOLEAN,
+			twitchCreatedAt: DataType.DATE,
+			twitchUpdatedAt: DataType.DATE
 		}, { sequelize, timestamps: false });
 		//this.belongsTo(User);
 		//this.hasMany(Setting);

@@ -51,7 +51,9 @@ var log = new (winston.Logger)({
 		new (winston.transports.DailyRotateFile)({
 			filename: 'logs/debug.log',
 			datePattern: 'yyyy-MM-dd.',
-			prepend: true
+			prepend: true,
+			level: "debug",
+			json: false
 		})
 	]
 });

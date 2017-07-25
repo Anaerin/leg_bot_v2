@@ -13,16 +13,16 @@
     "url": "Anaerin/leg_bot_v2"
   },
   "dependencies": {
-    "auto-load": "^2.1.0",
+    "auto-load": "^2.1.2",
     "body-parser": "^1.17.2",
     "connect-session-sequelize": "^4.1.0",
     "cookie-parser": "^1.4.3",
     "events": "^1.1.1",
-    "express": "^4.14.0",
-    "express-session": "^1.14.2",
+    "express": "^4.15.3",
+    "express-session": "^1.15.4",
     "express-ws": "^2.0.0",
     "express-ws-routes": "^1.1.0",
-    "greenlock-express": "^2.0.9",
+    "greenlock-express": "^2.0.11",
     "jws": "^3.1.4",
     "mmm": "^0.2.2",
     "moment": "^2.15.2",
@@ -30,9 +30,9 @@
     "node-letsencrypt": "^0.0.5",
     "request": "^2.81.0",
     "roll": "^1.2.0",
-    "sequelize": "^4.0.0-2",
+    "sequelize": "^4.4.2",
     "sqlite3": "^3.1.8",
-    "tmi.js": "^1.1.2",
+    "tmi.js": "^1.2.1",
     "winston": "^2.3.0",
     "winston-daily-rotate-file": "^1.4.6"
   }

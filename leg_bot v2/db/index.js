@@ -49,7 +49,7 @@ let path = __dirname;
 path += "\\";
 log.info("Loading DB Models from", path);
 // Dynamically load all your models? Yes please!
-let items = fs.readdirSync(path)
+let items = fs.readdirSync(path);
 items.forEach(item => {
 	if (item.endsWith(".js") && item != "index.js") {
 		let modelName = item.substr(0, item.length - 3);
@@ -63,6 +63,6 @@ for (let model in Models) {
 	if (Models[model].relation) Models[model].relation(DB.models);
 }
 log.info("Syncing DB");
-DB.sync({ alter: true });
+DB.sync({ alter: false });
 log.info("DB Synced");
 module.exports = DB;
