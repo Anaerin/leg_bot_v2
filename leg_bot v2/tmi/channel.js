@@ -3,6 +3,7 @@ const log = require("../lib/log.js");
 const EventEmitter = require("events");
 const Plugins = require("../lib/plugins");
 const tmi = require("./client.js");
+const Settings = require("../lib/settings.js");
 
 class Channel extends EventEmitter {
 	constructor(client, channel) {
@@ -52,8 +53,16 @@ class Channel extends EventEmitter {
 	}
 	onChat(channel, userState, message, self) {
 		if (channel == this.channelName) {
-
 			this.emit("onChat", userState, message, self);
+			if (!self) {
+				if (String(message).startsWith(Settings.CommandPrefix)) {
+					let command = String(message).match("$" + Settings.CommandPrefix + "(\w+)");
+					if (command.length > 0) {
+						this.emit("onCommand", command[0], ...arguments);
+						this.emit("onCommand " + command[0], ...arguments);
+					}
+				}
+			})
 		}
 	}
 	onCheer(channel, userState, message) {

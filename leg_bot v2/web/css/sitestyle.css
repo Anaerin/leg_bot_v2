@@ -2,6 +2,7 @@ body {
 	border: 0;
 	margin: 0;
 	padding: 0;
+	padding-top: 6.8em;
 	font-family: sans-serif;
 }
 header {
@@ -9,8 +10,11 @@ header {
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	position: relative;
+	position: fixed;
 	height: 6.8em;
+	width: 100%;
+	top: 0px;
+	/* height: 380px; */
 }
 header .PageTitle {
 	background-color: black;
@@ -39,7 +43,7 @@ header .MenuBar {
 header .LoginStatus {
 	color: white;
 	position: absolute;
-	bottom: 0px;
+	top: 0px;
 	right: 0px;
 	padding: 0.2em;
 }
@@ -70,4 +74,8 @@ header .MenuBar a {
 }
 header .MenuBar li.active a, header .MenuBar li:active a {
 	text-decoration: underline;
+}
+
+.hidden {
+	display: none;
 }

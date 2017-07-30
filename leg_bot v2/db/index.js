@@ -16,7 +16,7 @@ switch (dbConfig.DBType) {
 		var options = {
 			dialect: 'mysql',
 			host: dbConfig.DBHost,
-			logging: log.debug,
+			logging: (msg) => log.debug(msg),
 			timestamps: false
 		};
 		var DB = new Sequelize(dbConfig.DBFile, dbConfig.DBUsername, dbConfig.DBPassword, options);
@@ -25,7 +25,7 @@ switch (dbConfig.DBType) {
 		var options = {
 			dialect: 'sqlite',
 			storage: dbConfig.DBFile,
-			logging: log.debug,
+			logging: (msg) => log.debug(msg),
 			timestamps: false,
 			pool: {
 				max: 1,

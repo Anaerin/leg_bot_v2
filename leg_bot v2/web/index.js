@@ -7,12 +7,13 @@ const log = require("../lib/log.js");
 const session = require("express-session");
 const DB = require("../db/index.js");
 const secrets = require("../secrets.js");
+const path = require('path');
 
 let app = express();
 let SequelizeStore = require("connect-session-sequelize")(session.Store);
 
-app.set('view engine', 'mmm');
-app.set('views', __dirname + "/views");
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, "/views"));
 app.set('trust proxy', 1);
 
 app.use(session({
@@ -28,9 +29,8 @@ app.use(session({
 app.use((req, res, next) => {
 	if (req.session.loggedIn) {
 		res.locals.loggedIn = true;
-		res.locals.userName = req.session.userName;
-		res.locals.displayName = req.session.displayName;
-		res.locals.logo = req.session.logo;
+		res.locals.user = req.session.user;
+		res.locals.channel = req.session.channel;
 		res.locals.menu = [
 			{ name: "Home", url: "/" },
 			{ name: "Channel", url: "/channel" },

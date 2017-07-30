@@ -158,7 +158,7 @@ class TwitchAPI extends EventEmitter {
 	getChannelById(ChannelID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
-			request.url = this.URLMaker(["channel", ChannelID]);
+			request.url = this.URLMaker(["channels", ChannelID]);
 			this.processAPIRequest(request, resolve, reject);
 		});
 	}

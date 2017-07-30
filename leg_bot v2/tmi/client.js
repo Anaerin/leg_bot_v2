@@ -193,14 +193,7 @@ class tmiClient extends EventEmitter {
 			this.emit("Chat", ...arguments);
 			this.emit(arguments[0] + " " + "Chat", ...arguments);
 
-			if (!self) {
-				if (String(message).startsWith(Settings.CommandPrefix)) {
-					let command = String(message).match("\\" + Settings.CommandPrefix + "(\w+)");
-					if (command.length > 0) {
-						this.emit(arguments[0] + " Command", command[0], ...arguments);
-					}
-				}
-			}
+
 		},...arguments);
 	}
 }

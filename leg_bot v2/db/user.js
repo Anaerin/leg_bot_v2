@@ -14,12 +14,13 @@ var Channel = require("./channel.js");
 module.exports = class User extends Model {
 	constructor() {
 		super();
-	}	
+	}
 	static init(sequelize) {
 		super.init({
 			id: {
 				type: DataType.INTEGER,
-				primaryKey: true
+				primaryKey: true,
+				autoIncrement: true
 			},
 			userID: DataType.STRING,
 			userName: DataType.STRING,
@@ -33,6 +34,7 @@ module.exports = class User extends Model {
 		//this.hasOne(Channel, { as: "lastSeenChannel" });
 	}
 	static relation(models) {
+		this.hasOne(models.Channel);
 		this.hasOne(models.Channel, { as: "lastSeenChannel" });
 	}
-}
+};

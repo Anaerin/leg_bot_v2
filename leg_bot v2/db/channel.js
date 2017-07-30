@@ -45,8 +45,6 @@ module.exports = class Channel extends Model {
 			twitchCreatedAt: DataType.DATE,
 			twitchUpdatedAt: DataType.DATE
 		}, { sequelize, timestamps: false });
-		//this.belongsTo(User);
-		//this.hasMany(Setting);
 	}
 	static relation(models) {
 		this.belongsTo(models.User);

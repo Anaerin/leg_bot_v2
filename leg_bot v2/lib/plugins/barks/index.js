@@ -56,13 +56,9 @@ class Barks extends Plugin {
 	static get configuration() {
 		return [
 			{
-				name: "Active",
-				type: "Boolean",
-				default: true
-			}, 
-			{
 				name: "Barks",
-				type: "Callback",
+				type: "Custom",
+				controlFile: "barkList",
 				callback: "EditBarks"
 			}
 		];

@@ -16,6 +16,7 @@ app.get("/$", (req, res) => {
 				req.session.loggedIn = true;
 				req.session.userName = response.token.userName;
 				req.session.userID = response.token.userID;
+				log.info("Got valid Token response, looking up user and channel info");
 				// Asynchronous programming! Get the User info and Channel info by ID.
 				Promise.all([
 					Twitch.getUserByID(req.session.userID),
@@ -26,48 +27,68 @@ app.get("/$", (req, res) => {
 						title: "Error",
 						content: "An error occurred fetching user details - <pre>" + JSON.stringify(err) + "</pre>"
 					});
-				}).then(({ user, channel }) => {
-					DB.model("User").findOrCreate({
+				}).then(([user, channel]) => {
+					log.info("Got infos. Finding or creating user");
+					log.debug("User", user);
+					log.debug("Channel", channel);
+					req.session.displayName = user.display_name;
+					req.session.logo = user.logo;
+					DB.models.User.findOrCreate({
 						where: {
-							userID: req.session.userID
-						},
-						include: [
-							DB.model("User")
-						],
-						defaults: {
-							userID: req.session.userID
+							userID: response.token.userID
+						}, defaults: {
+							userID: response.token.userID
 						}
 					}).spread((userObj, created) => {
-						userObj.update({
-							userName: req.session.userName,
-							displayName: user.display_name,
-							logo: user.logo,
-							bio: user.bio,
-							token: req.session.token,
-							Channel: {
-								name: channel.name,
-								broadcasterLanguage: channel.broadcaster_language,
-								displayName: channel.display_name,
-								followers: channel.followers,
-								game: channel.game,
-								language: channel.language,
-								logo: channel.logo,
-								mature: channel.mature,
-								partner: channel.partner,
-								profileBanner: channel.profile_banner,
-								profileBannerBackgroundColor: channel.profile_banner_background_color,
-								status: channel.status,
-								url: channel.url,
-								videoBanner: channel.video_banner,
-								views: channel.views,
-								twitchCreatedAt: channel.created_at,
-								twitchUpdatedAt: channel.updated_at
-							}
-						}).then(() => {
-							res.redirect("/");
-						});
+						req.session.user = userObj;
+						userObj.userID = response.token.userID;
+						userObj.userName = user.name;
+						userObj.displayName = user.display_name;
+						userObj.logo = user.logo;
+						userObj.bio = user.bio;
+						userObj.token = req.session.token.client_id;
+						userObj.save().then((userObj) => {
+							req.session.user = userObj;
+							DB.models.Channel.findOrCreate({
+								where: {
+									UserId: userObj.id
+								}, defaults: {
+									UserID: userObj.id
+								}
+							}).spread((chanObj, created) => {
+								chanObj.name = channel.name;
+								chanObj.broadcasterLanguage = channel.broadcaster_language;
+								chanObj.displayName = channel.display_name;
+								chanObj.followers = channel.followers;
+								chanObj.game = channel.game;
+								chanObj.language = channel.language;
+								chanObj.logo = channel.logo;
+								chanObj.mature = channel.mature;
+								chanObj.partner = channel.partner;
+								chanObj.profileBanner = channel.profile_banner;
+								chanObj.profileBannerBackgroundColor = channel.profile_banner_background_color;
+								chanObj.status = channel.status;
+								chanObj.url = channel.url;
+								chanObj.videoBanner = channel.video_banner;
+								chanObj.views = channel.views;
+								chanObj.twitchCreatedAt = channel.created_at;
+								chanObj.twitchUpdatedAt = channel.updated_at;
+								chanObj.save().then((chanObj) => {
+									req.session.channel = chanObj;
+									req.session.profileBanner = channel.profile_banner;
+									req.session.profileBannerBackgroundColor = channel.profile_banner_background_color;
+									res.redirect("/");
+								});
+							});
 
+						}).catch((err) => {
+							log.warn("Problem saving...", err);
+						});
+					}).catch((err) => {
+						log.warn("Well, that didn't work...", err);
 					});
+				}).catch((err) => {
+					log.warn("Couldn't find or create...", err);
 				});
 			} else {
 				res.status(500);

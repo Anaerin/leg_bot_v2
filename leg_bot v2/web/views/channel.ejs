@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<% include partials/head %>
+	</head>
+	<body>
+		<header>
+			<% include partials/header %>
+		</header>
+		<form>
+			<div class="formItem">
+				<label for="enableFollow">Follow?</label>
+				<input type="checkbox" name="enableFollow" id="enableFollow" />
+			</div>
+			<div class="formItem">
+				<label for="enableJoin">Join your channel?</label>
+				<input type="checkbox" name="enableJoin" id="enableJoin"  onclick="document.getElementById('channelControls').classList.toggle('hidden',!this.checked);" />
+			</div>
+			<fieldset class="channelControls" id="channelControls">
+				<legend>Channel Plugins</legend>
+				<% plugins.forEach(function(plugin) { %>
+					<div class="formItem"><label for="enable<%=plugin.name%>">Enable <%=plugin.name%>?</label><input type="checkbox" name="enable<%=plugin.name%>" id="enable<%=plugin.name%>" onclick="document.getElementById('fieldset<%=plugin.name%>').classList.toggle('hidden',!this.checked);" /></div>
+					<% if (plugin.options) { %>
+						<fieldset class="pluginControls" id="fieldset<%=plugin.name%>"><legend><%=plugin.name%> Options</legend>
+						<% plugin.options.forEach(function(option) { %>
+							<% if (option.type == "Custom") { %>
+								<%- include('../../lib/plugins/' + plugin.name + '/' + option.controlFile, option) %>
+							<% } else { %>
+								<%- include('partials/form/' + option.type, option) %>
+							<% } %>
+						<% }) %>
+						</fieldset>				
+					<% } %>
+				<% }) %>
+			</fieldset>
+		</form>
+	</body>
+</html>
