@@ -19,14 +19,15 @@
 			<fieldset class="channelControls" id="channelControls">
 				<legend>Channel Plugins</legend>
 				<% plugins.forEach(function(plugin) { %>
-					<div class="formItem"><label for="enable<%=plugin.name%>">Enable <%=plugin.name%>?</label><input type="checkbox" name="enable<%=plugin.name%>" id="enable<%=plugin.name%>" onclick="document.getElementById('fieldset<%=plugin.name%>').classList.toggle('hidden',!this.checked);" /></div>
+					<% let pluginName = plugin.name %>
+					<div class="formItem"><label for="enable<%=pluginName%>">Enable <%=pluginName%>?</label><input type="checkbox" name="enable<%=pluginName%>" id="enable<%=plugin.name%>" onclick="document.getElementById('fieldset<%=plugin.name%>').classList.toggle('hidden',!this.checked);" /></div>
 					<% if (plugin.options) { %>
-						<fieldset class="pluginControls" id="fieldset<%=plugin.name%>"><legend><%=plugin.name%> Options</legend>
+						<fieldset class="pluginControls" id="fieldset<%=pluginName%>" plugin="<%=pluginName%>"><legend><%=pluginName%> Options</legend>
 						<% plugin.options.forEach(function(option) { %>
 							<% if (option.type == "Custom") { %>
-								<%- include('../../lib/plugins/' + plugin.name + '/' + option.controlFile, option) %>
+								<%- include('../../lib/plugins/' + pluginName + '/' + option.controlFile, pluginName, option) %>
 							<% } else { %>
-								<%- include('partials/form/' + option.type, option) %>
+								<%- include('partials/form/' + option.type, pluginName, option) %>
 							<% } %>
 						<% }) %>
 						</fieldset>				

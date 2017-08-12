@@ -62,7 +62,7 @@ class Channel extends EventEmitter {
 						this.emit("onCommand " + command[0], ...arguments);
 					}
 				}
-			})
+			}
 		}
 	}
 	onCheer(channel, userState, message) {
