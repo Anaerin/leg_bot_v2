@@ -1,11 +1,4 @@
-'use strict';
-
-/*
-Node doesn't support ES6 imports.
-import { Settings as DBSettings } from "../db/settings.js";
-*/
-
-//var DBSettings = require("../db/setting.js");
+"use strict";
 
 const DB = require("../db/index.js");
 const DBSettings = DB.models.Setting;
@@ -13,10 +6,8 @@ const log = require("./log.js");
 const config = require("../config.js");
 const settingsObj = new Map();
 
-
-//let _settings = new DBSettings();
-
 DBSettings.findAll().then(settings => {
+	log.debug("Retrieved from DB, now building settings proxy");
 	settings.forEach(setting => {
 		//settingsObj[setting.name] = setting.value;
 		settingsObj.set(setting.name,setting);
@@ -39,7 +30,6 @@ const Settings = new Proxy(settingsObj, {
 		} else {
 			DBSettings.create({ name: name, value: value }).then(setting => {
 				target.set(name, setting);
-				setting.save();
 			});
 		}
 		/* 

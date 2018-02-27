@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var sequelize = require("sequelize");
 var Model = sequelize.Model;
 var DataType = sequelize.DataTypes;
@@ -23,6 +23,6 @@ module.exports = class AntiSpam extends Model {
 			count: DataType.INTEGER.ZEROFILL.UNSIGNED
 		}, { sequelize, timestamps: false });
 	}
-	static relation(models) {
-	}
-}
+	/* static relation(models) {
+	} */
+};

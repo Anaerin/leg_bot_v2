@@ -72,3 +72,13 @@ Various API endpoints for overlays and the like.
 ## /web/ws ##
 
 Websockets endpoints. Hopefully working ones.
+
+# Workarounds for problems with the Twitch API(s) #
+
+## To be implemented ##
+
+### To account for username changes ###
+
+At startup, fetch our follow list (and store it), to get a list of current channel names to join.
+
+Every so often (Every hour?), re-fetch the list of users we are following and compare it to the previously fetched list. If there are any differences, someone we're following has changed their username. Tear down that channel connection and rebuild using the new name.

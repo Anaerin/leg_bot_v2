@@ -1,8 +1,7 @@
-'use strict';
+"use strict";
 const express = require("express");
 const querystring = require("querystring");
 const log = require("../../lib/log.js");
-const DB = require("../../db");
 const Plugins = require("../../lib/plugins");
 
 let app = module.exports = new express.Router({ mergeParams: true });
@@ -14,6 +13,7 @@ app.get("/$", (req, res) => {
 			plugins: Plugins.configuration
 		});
 	} else {
+		log.debug("User tried to access channel admin when not logged in. Redirecting...");
 		res.redirect("/login?to=" + querystring.escape(req.originalUrl));
 	}	
 });

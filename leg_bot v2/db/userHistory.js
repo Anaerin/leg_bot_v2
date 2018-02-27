@@ -9,12 +9,18 @@ import { Model, DataType } from 'sequelize';
 import Channel from './channel.js';
 */
 
-module.exports = class Setting extends Model {
+module.exports = class UserHistory extends Model {
 	static init(sequelize) {
 		super.init({
-			name: DataType.STRING,
-			value: DataType.STRING
+			id: {
+				type: DataType.INTEGER,
+				primaryKey: true,
+				autoIncrement: true
+			},
+			timeChanged: DataType.DATE,
+			oldUserName: DataType.STRING
 		}, { sequelize, timestamps: false });
+		//this.hasOne(Channel);
 	}
 	static relation(models) {
 		this.belongsTo(models.User);

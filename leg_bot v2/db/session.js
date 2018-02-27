@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var sequelize = require("sequelize");
 var Model = sequelize.Model;
 var DataType = sequelize.DataTypes;
@@ -23,6 +23,6 @@ module.exports = class Session extends Model {
 			data: DataType.STRING(50000)
 		}, { sequelize, timestamps: false });
 	}
-	static relation(models) {
-	}
-}
+	/* static relation(models) {
+	} */
+};

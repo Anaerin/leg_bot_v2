@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /*
 Node doesn't support ES6 imports.
 import api from 'tmi.js';
@@ -8,8 +8,8 @@ import EventEmitter from 'events';
 import log from './log.js';
 */
 
-const tmi = require("tmi.js");
-const client = new tmi.client();
+//const tmi = require("tmi.js");
+//const client = new tmi.client();
 const Request = require("request");
 //const api = client.api;
 const api = Request;
@@ -17,8 +17,8 @@ const Settings = require("./settings.js");
 const Secrets = require("../secrets.js");
 const EventEmitter = require("events");
 const log = require("./log.js");
-
-log.info("API?", typeof api);
+const jwt = require("jsonwebtoken");
+const DB = require("../db");
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
  * So we can connect with tmi.
@@ -33,7 +33,7 @@ class TwitchAPI extends EventEmitter {
 		log.info("Constructing TwitchAPI");
 		this.clientID = Secrets.clientID;
 		this.redirectURL = Secrets.redirectURL;
-		this.scopes = ['user_read', 'user_follows_edit', 'chat_login'];
+		this.scopes = ["user_read", "user_follows_edit", "chat_login"];
 		this.tokenIsValid = false;
 		this.baseRequest = {
 			method: "get",
@@ -43,7 +43,24 @@ class TwitchAPI extends EventEmitter {
 				"Accept": "application/vnd.twitchtv.v5+json"
 			}
 		};
-
+		this.baseRequestNewAPI = {
+			method: "get",
+			json: true,
+			headers: {
+				"Client-ID": this.clientID
+			}
+		};
+		this.twitchResponseMapping = {
+			"broadcaster_type": "broadcasterType",
+			description: "description",
+			"display_name": "displayName",
+			"id": "userID",
+			"login": "userName",
+			"offline_image_url": "offlineImageURL",
+			"profile_image_url": "profileImageURL",
+			type: "type",
+			"view_count": "viewCount"
+		};
 		// If the settings are loaded, load the token details.
 		// Otherwise, defer loading until the settings object says it's ready.
 		this.tryLoadToken();		
@@ -101,17 +118,79 @@ class TwitchAPI extends EventEmitter {
 	}
 	
 	processAPIRequest(request, resolve, reject) {
-		let req = api(request, (err, res, body) => {
+		api(request, (err, res, body) => {
 			if (err) reject(err);
 			if (body) resolve(body);
 		});
 	}
-
-	getUserByID(userID) {
+	getFromNewAPI(path, querystring = {}) {
+		return new Promise((resolve, reject) => {
+			let request = this.baseRequestNewAPI;
+			request.url = this.NewAPIURLMaker(path, querystring);
+			this.processAPIRequest(request, resolve, reject);
+		});
+	}
+	/* getUserByID(userID) {
 		return new Promise((resolve, reject) => {
 			let request = this.baseRequest;
 			request.url = this.URLMaker(["users", userID]);
 			this.processAPIRequest(request, resolve, reject);
+		});
+	} */
+	getUserByID(userID) {
+		return DB.models.User.findOrCreate({where: { userID: userID }, defaults: { userID: userID }}).spread((foundUsers, created) => {
+			let user;
+			if (Array.isArray(foundUsers)) user=foundUsers[0];
+			else user = foundUsers;
+			if (created || Date.parse(user.lastQueried) < (Date.now() - 43200000) ) {
+				return this.getFromNewAPI(["users"],{id: userID}).then((userData) => {
+					let twitchUser = userData.data[0];
+					if (user.userName && user.userName != twitchUser.login) {
+						DB.models.UserHistory.create({
+							userID: twitchUser.id,
+							timeChanged: Date.now(),
+							oldUserName: twitchUser.login
+						}).then((createdHistory) => {
+							user.addUserHistory(createdHistory);
+						});
+					}
+					for (let response in this.twitchResponseMapping) {
+						user[this.twitchResponseMapping[response]] = twitchUser[response];
+					}
+					user.lastQueried = Date.now();
+					return user.save();
+				});
+			} else {
+				return user;
+			}
+		});
+	}
+
+	/* getUserByName(username) {
+		return new Promise((resolve, reject) => {
+			let request = this.baseRequest;
+			request.url = this.URLMaker(["users"], {login: username});
+			this.processAPIRequest(request, resolve, reject);
+		});
+	} */
+
+	getUserByName(userName) {
+		return DB.models.User.findOrCreate({where: { userName: userName }, defaults: { userName: userName }}).spread((foundUsers, created) => {
+			let user;
+			if (Array.isArray(foundUsers)) user=foundUsers[0];
+			else user = foundUsers;
+			if (created || Date.parse(user.lastQueried) < (Date.now() - 43200000) ) {
+				return this.getFromNewAPI(["users"],{login: userName}).then((userData) => {
+					let twitchUser = userData.data[0];
+					for (let response in this.twitchResponseMapping) {
+						user[this.twitchResponseMapping[response]] = twitchUser[response];
+					}
+					user.lastQueried = Date.now();
+					return user.save();
+				});
+			} else {
+				return user;
+			}
 		});
 	}
 
@@ -121,7 +200,7 @@ class TwitchAPI extends EventEmitter {
 			request.url = this.URLMaker([""]);
 			request.headers.Authorization = "OAuth " + token;
 			log.info("Requesting token details", request);
-			let req = api(request, (err, res, body) => {
+			api(request, (err, res, body) => {
 				if (err) { reject(err); }
 				log.debug("Got the following token", JSON.stringify(body));
 				if (body && body.token && body.token.valid) {
@@ -360,6 +439,19 @@ class TwitchAPI extends EventEmitter {
 		});
 	}
 
+	NewAPIURLMaker(endpoint, querystring = {}) {
+		let URL = "https://api.twitch.tv/helix/" + endpoint.join("/");
+		if (Object.getOwnPropertyNames(querystring).length > 0) {
+			URL += "?";
+			let args = [];
+			for (let name in querystring) {
+				args.push(name + "=" + encodeURIComponent(querystring[name]));
+			}
+			URL += args.join("&");
+		}
+		return URL;
+	}
+
 	URLMaker(endpoint, querystring = {}) {
 		let URL = "https://api.twitch.tv/kraken/" + endpoint.join("/");
 		if (Object.getOwnPropertyNames(querystring).length > 0) {
@@ -372,15 +464,52 @@ class TwitchAPI extends EventEmitter {
 		}
 		return URL;
 	}
-	tokenURL(scopes, state) {
+
+	verifyTwitchJWT(token) {
+		return new Promise((resolve, reject) => {
+			this.getOIDCKeys().then((keys) => {
+				let key = keys[0];
+				let options = {
+					algorithms: [key.alg],
+					issuer: "Twitch"
+				};
+				jwt.verify(token, key.n, options, (err, decoded) => {
+					if (err) reject(err);
+					if (decoded) resolve(decoded);
+				});
+			});
+		});
+	}
+
+	getOIDCKeys() {
+		return new Promise((resolve, reject) => {
+			if (this.OIDCKeys) resolve(this.OIDCKeys);
+			let request = {
+				json: true,
+				method: "get",
+				url: "https://api.twitch.tv/api/oidc/keys"
+			};
+			api(request, (err, res, body) => {
+				if (err) reject(err);
+				if (body) {
+					this.OIDCKeys = body;
+					resolve(body);
+				}
+			});
+		});
+	}
+
+	tokenURL(scopes, state, nonce) {
 		if (scopes === "") scopes = [];
-		return this.URLMaker(["oauth2","authorize"], {
+		let qs = {
 			response_type: "code",
 			client_id: this.clientID,
 			redirect_uri: this.redirectURL,
 			scope: scopes.join(" "),
-			state: state
-		});
+		};
+		if (state) qs.state = state;
+		if (nonce) qs.nonce = nonce;
+		return this.URLMaker(["oauth2","authorize"], qs);
 		/* return "https://api.twitch.tv/kraken/oauth2/authorize" +
 			"?response_type=code" +
 			"&client_id=" + this.clientID +
@@ -397,10 +526,10 @@ class TwitchAPI extends EventEmitter {
 	}
 	
 	// When we recieve a token (for this instance only)
-	completeToken(code, state) {
+	completeToken(code, state, nonce) {
 		log.debug("Received token code", code);
 		return new Promise((resolve, reject) => {
-			let req = api({
+			api({
 				method: "POST",
 				url: this.URLMaker(["oauth2", "token"], {}),
 				json: true,
@@ -415,16 +544,20 @@ class TwitchAPI extends EventEmitter {
 					"grant_type": "authorization_code",
 					"redirect_uri": this.redirectURL,
 					"code": code,
-					"_method": "post"
 				}
 			}, (err, res, body) => {
 				if (body && body.access_token) {
 					if (state == "TMILogin") {
 						this.getMyTokenDetails(body.access_token);
 					} else {
-						this.getTokenDetails(body.access_token).then((token) => {
-							this.emit("TokenReceieved", token);
-							resolve({ token: token, valid: true });
+						this.verifyTwitchJWT(body["id_token"]).then((jwtToken) => {
+							if (jwtToken.nonce == nonce) this.getTokenDetails(body.access_token).then((token) => {
+								this.emit("TokenReceieved", token);
+								resolve({ token: token, valid: true });
+							});
+							else reject("Incorrect Nonce");
+						}).catch((err) => {
+							reject(err);
 						});
 					}
 				} else if (body) {
@@ -437,7 +570,7 @@ class TwitchAPI extends EventEmitter {
 	}
 	hasToken() {
 		if (!this.tokenIsValid) {
-
+			// Do something
 		}
 		return this.tokenIsValid;
 	}

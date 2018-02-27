@@ -7,14 +7,14 @@ const log = require("../lib/log.js");
 const session = require("express-session");
 const DB = require("../db/index.js");
 const secrets = require("../secrets.js");
-const path = require('path');
+const path = require("path");
 
 let app = express();
 let SequelizeStore = require("connect-session-sequelize")(session.Store);
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, "/views"));
-app.set('trust proxy', 1);
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "/views"));
+app.set("trust proxy", 1);
 
 app.use(session({
 	secret: secrets.sessionSecret,
@@ -46,7 +46,7 @@ app.use((req, res, next) => {
 	return next();
 });
 
-app.use('/', require("./pages"));
+app.use("/", require("./pages"));
 
 app.use("/css", express.static("web/css"));
 

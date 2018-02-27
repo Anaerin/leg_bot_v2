@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /*
 Node doesn't support ES6 imports.
 import EventEmitter from 'events';
@@ -14,7 +14,7 @@ const tmi = require("tmi.js");
 const Twitch = require("../lib/Twitch.js");
 const log = require("../lib/log.js");
 const antiSpam = require("../lib/antispam.js");
-const Settings = require("../lib/settings.js");
+// const Settings = require("../lib/settings.js");
 const Channel = require("./channel.js");
 const DB = require("../db");
 
@@ -41,14 +41,14 @@ class tmiClient extends EventEmitter {
 	}
 	doConnect() {
 		let channelsToJoin = ["#" + this.userName];
-		DB.models.Channel.findAll({
+		DB.models.User.findAll({
 			where: {
 				active: true
-			}, include: [ DB.models.User ]
-		}).then((channels) => {
-			channels.forEach((channel) => {
-				this.channels[channel.name] = channel;
-				channelsToJoin.push("#" + channel.name);
+			}
+		}).then((users) => {
+			users.forEach((user) => {
+				this.channels[user.userName] = user;
+				channelsToJoin.push("#" + user.userName);
 			});
 		});
 		var options = {
@@ -66,6 +66,12 @@ class tmiClient extends EventEmitter {
 		this.client = new tmi.client(options);
 		this.bindEvents();
 		this.client.connect();
+		this.on("#" + this.userName + " Message",(channel, userstate, message, self) => {
+			let displayName = userstate["display-name"];
+			if (!displayName) displayName = userstate["username"];
+			log.debug("CHAT: userstate looks like this: %s",userstate);
+			log.debug("CHAT: %s just said \"%s\" in our channel!",userstate["display-name"],message);
+		});
 	}
 	bindEvents() {
 		// Declare what events we want to listen for.
@@ -132,27 +138,33 @@ class tmiClient extends EventEmitter {
 		// For each event...
 		allEvents.forEach(ev => {
 			// Bind to the event (in lower case, because TMI doesn't believe in capitalization)
-			this.client.on(ev.toLowerCase(), () => {
-				// Then schedule execution, with the arguments of this event forwarded
-				setImmediate(() => {
-					// And emit an event for it from us, with the arguments preserved.
-					this.emit(ev, ...arguments);
-				}, ...arguments);
-			});
+			this.client.on(ev.toLowerCase(), this.onEvent.bind(this,ev));
 		});
 		// For all the events that reference a channel...
 		channelEventList.forEach(ev => {
 			// Bind to the event, like above...
-			this.client.on(ev.toLowerCase(), () => {
-				// Then schedule execution asynchronously...
-				setImmediate(() => {
-					// And emit an event for this event and channel combination.
-					this.emit(arguments[0] + " " + ev, ...arguments);
-				});
-			});
+			this.client.on(ev.toLowerCase(), this.onChannelEvent.bind(this,ev));
 		});
-		this.client.on("chat", this.onChat);
-		this.client.on("join", this.onJoin);
+		this.client.on("chat", this.onChat.bind(this));
+		this.client.on("join", this.onJoin.bind(this));
+	}
+	onEvent(event) {
+		let args = [...arguments];
+		args.shift();
+		setImmediate(() => {
+			// And emit an event for this event and channel combination.
+			this.emit(event, ...args);
+		}, ...args);
+		
+	}
+	onChannelEvent(event) {
+		let args = [...arguments];
+		args.shift();
+		setImmediate(() => {
+			// And emit an event for this event and channel combination.
+			log.debug("EVENT: %s", args[0] + " " + event);
+			this.emit(args[0] + " " + event, ...args);
+		}, ...args);
 	}
 	onJoin(channel, username, self) {
 		if (self) {
@@ -169,32 +181,57 @@ class tmiClient extends EventEmitter {
 		}
 	}
 	onChat(channel, userstate, message, self) {
-		setImmediate((channel, userstate, message, self) => {
-			//Async processing. Antispam goes here.
-			if (!self && !userstate['mod']) {
-				// This needs to be overhauled somewhat, but for now, this will do as a placeholder of sorts.
-				
-				//This user isn't me, and it isn't a mod. Let's see if we have spam...
+		if (!self) {
+			// If this isn't me...
+			if (!userstate["mod"] && this.client.isMod(this.userName)) {
+				// And it's not a mod, and I am a mod, check for spam.
 				let matches = antiSpam.matchRule(message);
 				if (matches) {
 					//Oh boy! Fresh spam! Let's nuke'em!
 					let timeout = 0;
-					if (antiSpam.userTimeouts[userstate['user-id']]) timeout = antiSpam.userTimeouts[userstate['user-id']];
+					if (antiSpam.userTimeouts[userstate["user-id"]]) timeout = antiSpam.userTimeouts[userstate["user-id"]];
 					timeout++;
-					antiSpam.userTimeouts[userstate['user-id']] = timeout;
+					antiSpam.userTimeouts[userstate["user-id"]] = timeout;
 					//record the number of times user's been timed out, then use a wonderful exponential scale to calculate how long their timeout is.
 					this.client.timeout(channel, userstate.username, Math.pow(4, timeout - 1), "AntiSpam matched rule " + matches.name);
-					this.client.say(channel, "Antispam: Timed out " + userstate['display-name'] + " for " + Math.pow(4, timeout - 1) + " seconds (" + matches.name + ")");
-					//Finally, add one to this rule's total.
-					matches.increment('count', { by: 1 });
+					this.client.say(channel, "Antispam: Timed out " + userstate["display-name"] + " for " + Math.pow(4, timeout - 1) + " seconds (" + matches.name + ")");
+				}
+				
+				if (antiSpam.alreadySaid(userstate, channel, message)) {
+					this.client.timeout(channel, userstate.username, 5, "Antispam: Duplicate message (>3) detected");
+					this.client.r9kbeta(channel).then(() => {
+						setTimeout(() => {
+							this.client.r9kbetaoff(channel);
+						}, 10000);
+					});
 				}
 			}
 
+			// Let's update the seen record.
+			Twitch.getUserByID(userstate["user-id"]).then((user) => {
+				if (!user) {
+					let linkRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
+					if (linkRegex.test(message)) {
+						if (this.client.isMod(this.userName)) {
+							this.client.timeout(channel, userstate.username, 5, "Antispam: Previously unseen user posting a link");
+						}
+					} else {
+						Twitch.getUserByName(channel.substring(1)).then((channelObj) => {
+							user.setLastSeenChannel(channelObj);
+						});
+					}
+				} else {
+					Twitch.getUserByName(channel.substring(1)).then((channelObj) => {
+						user.setLastSeenChannel(channelObj);
+					});
+				}
+			});
+		}
+		if (!self) {
+			// I don't care what I said.
 			this.emit("Chat", ...arguments);
-			this.emit(arguments[0] + " " + "Chat", ...arguments);
-
-
-		},...arguments);
+			this.emit(channel + " " + "Chat", ...arguments);
+		}
 	}
 }
 

@@ -1,9 +1,8 @@
-'use strict';
+"use strict";
 
 const EventEmitter = require("events");
 const fs = require("fs");
 const log = require("../log.js");
-const DB = require("../../db");
 
 class pluginHandler extends EventEmitter {
 	constructor() {
@@ -11,20 +10,20 @@ class pluginHandler extends EventEmitter {
 		this.plugins = new Map();
 		let path = __dirname;
 		let items = fs.readdirSync(path);
+		log.debug("Loading plugins...");
 		items.forEach(item => {
 			if (!item.endsWith(".js")) {
+				log.debug("Loading plugin %s...",item);
 				let plugin = require("./" + item);
 				this.register(item, plugin);
 			}
 		});
-		DB.sync();
 	}
 	register(name, plugin) {
 		if (this.plugins.has(name)) {
 			throw new TypeError("Plugin already registered under that name");
 		} else {
 			this.plugins.set(name, plugin);
-			plugin.initDatabase(DB);
 		}
 	}
 	call(name) {
@@ -51,6 +50,18 @@ class pluginHandler extends EventEmitter {
 			confs.push(config);
 		});
 		return confs;
+	}
+	initializeDB(DB) {
+		this.plugins.forEach((plugin) => {
+			log.info("Loading plugin DB model(s) for %s", plugin.name);
+			if (plugin.initializeDB) plugin.initializeDB(DB);
+		});
+	}
+	setupDBRelations(DB) {
+		this.plugins.forEach((plugin) => {
+			log.info("Setting plugin DB relations for %s", plugin.name);
+			if (plugin.setupDBRelations) plugin.setupDBRelations(DB);
+		});
 	}
 }
 

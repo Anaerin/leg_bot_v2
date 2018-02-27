@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 const express = require("express");
 
 let app = module.exports = new express.Router({ mergeParams: true });
-app.get('/$', (req, res) => {
+app.get("/$", (req, res) => {
 	req.session.regenerate((err) => {
 		if (err) {
 			res.render("main", {

@@ -16,8 +16,11 @@ class Plugin extends EventEmitter {
 	static get configuration() {
 		throw new SyntaxError("Configuration is not defined");
 	}
-	static initDatabase(DB) {
-		return true;
+	static initDatabase() {
+		//Optional Parameter
+	}
+	static setupDBRelations() {
+		//Optional Parameter
 	}
 	onEnable() {
 		return true;

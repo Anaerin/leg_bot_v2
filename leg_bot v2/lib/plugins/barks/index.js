@@ -3,10 +3,9 @@
 
 const Plugin = require("../plugin.js");
 const Sequelize = require("sequelize");
-const Model = Sequelize.Model;
 const DataType = Sequelize.DataTypes;
 
-class Bark extends Model {
+class Bark extends Sequelize.Model {
 	constructor() {
 		super();
 	}
@@ -39,7 +38,7 @@ class Bark extends Model {
 
 	}
 	static relation(models) {
-		this.belongsTo(models.Channel);
+		this.belongsTo(models.User);
 	}
 }
 
@@ -63,11 +62,12 @@ class Barks extends Plugin {
 			}
 		];
 	}
-	static initDatabase(DB) {
+	static initializeDB(DB) {
 		Bark.init(DB);
-		Bark.relation(DB.models);
-		//var bark = new Bark();		
 	}
+	static setupDBRelations(DB) {
+		Bark.relation(DB.models);
+	}	
 	EditBarks() {
 		
 	}

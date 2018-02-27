@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 /*
 Node doesn't support ES6 imports.
 import winston from 'winston';
@@ -37,7 +37,7 @@ winston.transports.Console.prototype.log = function (level, message, meta, callb
 	const output = require("winston/lib/winston/common").log(Object.assign({}, this, {
 		level, message, meta
 	}));
-	console[level in console ? level : 'log'](output);
+	console[level in console ? level : "log"](output);
 	setImmediate(callback, null, true);
 };
 var log = new (winston.Logger)({
@@ -49,8 +49,8 @@ var log = new (winston.Logger)({
 			level: "debug"
 		}),
 		new (winston.transports.DailyRotateFile)({
-			filename: 'logs/debug.log',
-			datePattern: 'yyyy-MM-dd.',
+			filename: "logs/debug.log",
+			datePattern: "yyyy-MM-dd.",
 			prepend: true,
 			level: "debug",
 			json: false
