@@ -1,19 +1,27 @@
 "use strict";
 const express = require("express");
-const querystring = require("querystring");
 const log = require("../../lib/log.js");
-const Plugins = require("../../lib/plugins");
+//const Plugins = require("../../lib/plugins");
+const Auth = require("../authentication.js");
+const querystring = require("querystring");
 
 let app = module.exports = new express.Router({ mergeParams: true });
-app.get("/$", (req, res) => {
-	if (req.session.loggedIn) {
-		res.render("channel", {
-			title: "Edit Channel",
-			content: "Here is where you would edit your channel.",
-			plugins: Plugins.configuration
+
+app.get("/$", (req, res, next) => {
+	log.debug("User accessing channels page. Checking auth");
+	Auth.isAuthenticated(req.session).then(() => {
+		log.debug("Auth is AOK, moving on...");
+		return next();
+	}).catch((err) => {
+		if (err.login) res.redirect("/login?to=" + querystring.escape(req.originalUrl));
+		else res.render("main", {
+			title: "Error",
+			content: "An error occurred checking authentication. Please inform Anaerin" + err.error
 		});
-	} else {
-		log.debug("User tried to access channel admin when not logged in. Redirecting...");
-		res.redirect("/login?to=" + querystring.escape(req.originalUrl));
-	}	
+	});
+});
+
+app.get("/$", (req, res) => {
+	log.debug("Rendering page.");
+	// User is logged in, token is valid, all that jazz...
 });

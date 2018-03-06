@@ -27,10 +27,10 @@ app.use(session({
 }));
 
 app.use((req, res, next) => {
+	log.debug("Session.loggedIn = %s", req.session.loggedIn);
 	if (req.session.loggedIn) {
-		res.locals.loggedIn = true;
-		res.locals.user = req.session.user;
-		res.locals.channel = req.session.channel;
+		//res.locals.loggedIn = true;
+		//res.locals.user = req.session.user;
 		res.locals.menu = [
 			{ name: "Home", url: "/" },
 			{ name: "Channel", url: "/channel" },

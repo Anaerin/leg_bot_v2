@@ -67,10 +67,12 @@ class tmiClient extends EventEmitter {
 		this.bindEvents();
 		this.client.connect();
 		this.on("#" + this.userName + " Message",(channel, userstate, message, self) => {
-			let displayName = userstate["display-name"];
-			if (!displayName) displayName = userstate["username"];
-			log.debug("CHAT: userstate looks like this: %s",userstate);
-			log.debug("CHAT: %s just said \"%s\" in our channel!",userstate["display-name"],message);
+			if (!self) {
+				let displayName = userstate["display-name"];
+				if (!displayName) displayName = userstate["username"];
+				log.debug("CHAT: userstate looks like this: %s",userstate);
+				log.debug("CHAT: %s just said \"%s\" in our channel!",userstate["display-name"],message);
+			}
 		});
 	}
 	bindEvents() {

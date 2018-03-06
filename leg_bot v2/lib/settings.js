@@ -32,13 +32,6 @@ const Settings = new Proxy(settingsObj, {
 				target.set(name, setting);
 			});
 		}
-		/* 
-		DBSettings.findOrCreate({ where: { name: name } }).spread((setting, created) => {
-			if (created) setting['name'] = name;
-			setting['value'] = value;
-			//setting.save();
-		});
-		*/
 		return true;
 	}
 });

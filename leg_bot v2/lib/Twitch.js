@@ -10,14 +10,16 @@ import log from './log.js';
 
 //const tmi = require("tmi.js");
 //const client = new tmi.client();
-const Request = require("request");
+//const Request = require("request");
+const RequestPromise = require("request-promise");
 //const api = client.api;
-const api = Request;
+const api = RequestPromise;
 const Settings = require("./settings.js");
 const Secrets = require("../secrets.js");
 const EventEmitter = require("events");
 const log = require("./log.js");
 const jwt = require("jsonwebtoken");
+const jwk = require("jwk-to-pem");
 const DB = require("../db");
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
@@ -89,11 +91,12 @@ class TwitchAPI extends EventEmitter {
 		}
 	}
 
-	// Call the twitch API to get the details of the token we have. Need username for logging in, for instance.
+	// Call the twitch API to get the details of the token we have. Need username for logging in to IRC, for instance.
 	// If we don't have a valid token, prompt to get us one.
-	getMyTokenDetails(token) {
+	async getMyTokenDetails(token) {
 		this.tokenIsValid = false;
-		this.getTokenDetails(token).then((response) => {
+		try {
+			let response = await this.getTokenDetails(token);
 			log.debug("TokenDetails contains", response);
 			this.tokenIsValid = true;
 			for (let scope of this.scopes) {
@@ -111,332 +114,254 @@ class TwitchAPI extends EventEmitter {
 				Settings.oAuthToken = this.oAuthToken;
 				this.emit("GotValidToken", { token: this.oAuthToken, userName: this.userName, userID: this.userID });
 			}
-		}, (error) => {
-			log.error(error);
-		});
-		
+		} catch (e) {
+			throw e;
+		}
 	}
 	
-	processAPIRequest(request, resolve, reject) {
-		api(request, (err, res, body) => {
-			if (err) reject(err);
-			if (body) resolve(body);
-		});
+	async getFromNewAPI(path, querystring = {}) {
+		let request = this.baseRequestNewAPI;
+		request.url = this.NewAPIURLMaker(path, querystring);
+		return api(request);
 	}
-	getFromNewAPI(path, querystring = {}) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequestNewAPI;
-			request.url = this.NewAPIURLMaker(path, querystring);
-			this.processAPIRequest(request, resolve, reject);
-		});
-	}
-	/* getUserByID(userID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["users", userID]);
-			this.processAPIRequest(request, resolve, reject);
-		});
-	} */
-	getUserByID(userID) {
-		return DB.models.User.findOrCreate({where: { userID: userID }, defaults: { userID: userID }}).spread((foundUsers, created) => {
-			let user;
-			if (Array.isArray(foundUsers)) user=foundUsers[0];
-			else user = foundUsers;
-			if (created || Date.parse(user.lastQueried) < (Date.now() - 43200000) ) {
-				return this.getFromNewAPI(["users"],{id: userID}).then((userData) => {
-					let twitchUser = userData.data[0];
-					if (user.userName && user.userName != twitchUser.login) {
-						DB.models.UserHistory.create({
-							userID: twitchUser.id,
-							timeChanged: Date.now(),
-							oldUserName: twitchUser.login
-						}).then((createdHistory) => {
-							user.addUserHistory(createdHistory);
-						});
-					}
-					for (let response in this.twitchResponseMapping) {
-						user[this.twitchResponseMapping[response]] = twitchUser[response];
-					}
-					user.lastQueried = Date.now();
-					return user.save();
+
+	async getUserByID(userID) {
+		let [foundUser, created] = await DB.models.User.findOrCreate({where: { userID: userID }, defaults: { userID: userID }});
+		if (Array.isArray(foundUser)) foundUser = foundUser[0];
+		if (created || Date.parse(foundUser.lastQueried) < (Date.now() - 43200000)) {
+			let userData = await this.getFromNewAPI(["users"],{id: userID});
+			userData = userData.data[0];
+			if (foundUser.userName && foundUser.userName != userData.login) {
+				DB.models.UserHistory.create({
+					userOD: userData.id,
+					timeChanged: Date.now(),
+					oldUserName: foundUser.userName
+				}).then((createdHistory) => {
+					foundUser.addUserHistory(createdHistory);
 				});
-			} else {
-				return user;
 			}
-		});
+			for (let response in this.twitchResponseMapping) {
+				foundUser[this.twitchResponseMapping[response]] = userData[response];
+			}
+			foundUser.lastQueried = Date.now();
+			return userData.save();
+		}
 	}
 
-	/* getUserByName(username) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["users"], {login: username});
-			this.processAPIRequest(request, resolve, reject);
-		});
-	} */
-
-	getUserByName(userName) {
-		return DB.models.User.findOrCreate({where: { userName: userName }, defaults: { userName: userName }}).spread((foundUsers, created) => {
-			let user;
-			if (Array.isArray(foundUsers)) user=foundUsers[0];
-			else user = foundUsers;
-			if (created || Date.parse(user.lastQueried) < (Date.now() - 43200000) ) {
-				return this.getFromNewAPI(["users"],{login: userName}).then((userData) => {
-					let twitchUser = userData.data[0];
-					for (let response in this.twitchResponseMapping) {
-						user[this.twitchResponseMapping[response]] = twitchUser[response];
-					}
-					user.lastQueried = Date.now();
-					return user.save();
-				});
-			} else {
-				return user;
+	async getUserByName(userName) {
+		let [foundUser, created] = await DB.models.User.findOrCreate({where: { userName: userName }, defaults: { userName: userName }});
+		if (Array.isArray(foundUser)) foundUser[0];
+		if (created || Date.parse(foundUser.lastQueried) < (Date.now() - 43200000)) {
+			let userData = await this.getFromNewAPI(["users"], {login: userName});
+			userData = userData.data[0];
+			for (let response in this.twitchResponseMapping) {
+				foundUser[this.twitchResponseMapping[response]] = userData[response];
 			}
-		});
+			foundUser.lastQueried = Date.now();
+			return foundUser.save();
+		}
 	}
 
-	getTokenDetails(token) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker([""]);
-			request.headers.Authorization = "OAuth " + token;
-			log.info("Requesting token details", request);
-			api(request, (err, res, body) => {
-				if (err) { reject(err); }
-				log.debug("Got the following token", JSON.stringify(body));
-				if (body && body.token && body.token.valid) {
-					if (body.token.authorization) {
-						resolve({
-							token: token,
-							userName: body.token.user_name,
-							userID: body.token.user_id,
-							scopes: body.token.authorization.scopes
-						});
-					} else {
-						resolve({
-							token: token,
-							userName: body.token.user_name,
-							userID: body.token.user_id,
-						});
-					}
-				} else {
-					reject(body);
-				}
-			});
-		});
+	async getTokenDetails(token) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker([""]);
+		request.headers.Authorization = "OAuth " + token;
+		log.info("Requesting token details", request);
+		let body = await api(request);
+		log.debug("Got the following token", JSON.stringify(body));
+		if (body && body.token && body.token.valid) {
+			if (body.token.authorization) {
+				return {
+					token: token,
+					userName: body.token.user_name,
+					userID: body.token.user_id,
+					scopes: body.token.authorization.scopes
+				};
+			} else {
+				return {
+					token: token,
+					userName: body.token.user_name,
+					userID: body.token.user_id,
+				};
+			}
+		} else {
+			throw(body);
+		}
+
 	}
 	
-	getChannel(token) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channel"]);
-			request.headers.Authorization = "OAuth " + token;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannel(token) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channel"]);
+		request.headers.Authorization = "OAuth " + token;
+		return api(request);
 	}
 
-	getChannelById(ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelById(ChannelID) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID]);
+		return api(request);
 	}
 
-	updateChannel(token, ChannelID, status, game, delay, channel_feed_enabled) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.method = "PUT";
-			let qs = {};
-			if (status) qs.status = status;
-			if (game) qs.game = game;
-			if (delay) qs.delay = delay;
-			if (channel_feed_enabled !== "undefined" && channel_feed_enabled !== "null") qs.channel_feed_enabled = channel_feed_enabled;
-			request.url = this.URLMaker(["channels", ChannelID]);
-			request.form = qs;
-			request.headers.Authorization = "OAuth " + token;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async updateChannel(token, ChannelID, status, game, delay, channel_feed_enabled) {
+		let request = this.baseRequest;
+		request.method = "PUT";
+		let qs = {};
+		if (status) qs.status = status;
+		if (game) qs.game = game;
+		if (delay) qs.delay = delay;
+		if (channel_feed_enabled !== "undefined" && channel_feed_enabled !== "null") qs.channel_feed_enabled = channel_feed_enabled;
+		request.url = this.URLMaker(["channels", ChannelID]);
+		request.form = qs;
+		request.headers.Authorization = "OAuth " + token;
+		return api(request);
 	}
 
-	getChannelEditors(token, ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID, "editors"]);
-			request.headers.Authorization = "OAuth " + token;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelEditors(token, ChannelID) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID, "editors"]);
+		request.headers.Authorization = "OAuth " + token;
+		return api(request);
 	}
 
-	getChannelFollowers(ChannelID, cursor) {
-		return new Promise((resolve, reject) => {
-			let qs = { limit: 100 };
-			if (cursor) qs.cursor = cursor;
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID, "follows"], qs);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelFollowers(ChannelID, cursor) {
+		let qs = { limit: 100 };
+		if (cursor) qs.cursor = cursor;
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID, "follows"], qs);
+		return api(request);
 	}
 
-	getChannelTeams(ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID, "teams"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelTeams(ChannelID) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID, "teams"]);
+		return api(request);
 	}
 
-	getChannelSubscribers(token, ChannelID, page) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			let qs = { limit: 100 };
-			if (page) qs.offset = page * 100;
-			request.url = this.URLMaker(["channels", ChannelID, "subscriptions"], qs);
-			request.headers.Authorization = "OAuth " + token;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelSubscribers(token, ChannelID, page) {
+		let request = this.baseRequest;
+		let qs = { limit: 100 };
+		if (page) qs.offset = page * 100;
+		request.url = this.URLMaker(["channels", ChannelID, "subscriptions"], qs);
+		request.headers.Authorization = "OAuth " + token;
+		return api(request);
 	}
 
-	checkChannelSubscriptionForUser(token, ChannelID, UserID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID, "subscriptions", UserID]);
-			request.headers.Authorization = "OAuth " + token;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async checkChannelSubscriptionForUser(token, ChannelID, UserID) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID, "subscriptions", UserID]);
+		request.headers.Authorization = "OAuth " + token;
+		return api(request);
 	}
 
-	getChannelVideos(ChannelID, page, broadcast_type, language) {
-		return new Promise((resolve, reject) => {
-			let qs = { limit: 100 };
-			if (Array.isArray(broadcast_type)) qs.broadcast_type = broadcast_type.join(",");
-			if (typeof broadcast_type === "string") qs.broadcast_type = broadcast_type;
-			if (Array.isArray(language)) qs.language = language.join(",");
-			if (typeof language === "string") qs.language = language;
-			if (page) qs.offset = page * 100;
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["channels", ChannelID, "videos"], qs);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelVideos(ChannelID, page, broadcast_type, language) {
+		let qs = { limit: 100 };
+		if (Array.isArray(broadcast_type)) qs.broadcast_type = broadcast_type.join(",");
+		if (typeof broadcast_type === "string") qs.broadcast_type = broadcast_type;
+		if (Array.isArray(language)) qs.language = language.join(",");
+		if (typeof language === "string") qs.language = language;
+		if (page) qs.offset = page * 100;
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["channels", ChannelID, "videos"], qs);
+		return api(request);
 	}
 
-	startChannelCommercial(token, ChannelID, duration) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.method = "POST";
-			request.headers.Authorization = "OAuth " + token;
-			request.url = this.URLMaker(["channels", ChannelID, "commercial"]);
-			request.body = duration;
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async startChannelCommercial(token, ChannelID, duration) {
+		let request = this.baseRequest;
+		request.method = "POST";
+		request.headers.Authorization = "OAuth " + token;
+		request.url = this.URLMaker(["channels", ChannelID, "commercial"]);
+		request.body = duration;
+		return api(request);
 	}
 
-	resetStreamKey(token, ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.method = "DELETE";
-			request.headers.Authorization = "OAuth " + token;
-			request.url = this.URLMaker(["channels", ChannelID, "stream_key"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async resetStreamKey(token, ChannelID) {
+		let request = this.baseRequest;
+		request.method = "DELETE";
+		request.headers.Authorization = "OAuth " + token;
+		request.url = this.URLMaker(["channels", ChannelID, "stream_key"]);
+		return api(request);
 	}
 
-	getChannelCommunity(token, ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.headers.Authorization = "OAuth " + token;
-			request.url = this.URLMaker(["channels", ChannelID, "community"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChannelCommunity(token, ChannelID) {
+		let request = this.baseRequest;
+		request.headers.Authorization = "OAuth " + token;
+		request.url = this.URLMaker(["channels", ChannelID, "community"]);
+		return api(request);
 	}
 
-	setChannelCommunity(token, ChannelID, CommunityID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.headers.Authorization = "OAuth " + token;
-			request.url = this.URLMaker(["channels", ChannelID, "community", CommunityID]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async setChannelCommunity(token, ChannelID, CommunityID) {
+		let request = this.baseRequest;
+		request.headers.Authorization = "OAuth " + token;
+		request.url = this.URLMaker(["channels", ChannelID, "community", CommunityID]);
+		return api(request);
 	}
 
-	removeChannelFromCommunity(token, ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.method = "DELETE";
-			request.headers.Authorization = "OAuth " + token;
-			request.url = this.URLMaker(["channels", ChannelID, "community"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async removeChannelFromCommunity(token, ChannelID) {
+		let request = this.baseRequest;
+		request.method = "DELETE";
+		request.headers.Authorization = "OAuth " + token;
+		request.url = this.URLMaker(["channels", ChannelID, "community"]);
+		return api(request);
 	}
 
-	getChatBadgesByChannel(ChannelID) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["chat", ChannelID, "badges"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChatBadgesByChannel(ChannelID) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["chat", ChannelID, "badges"]);
+		return api(request);
 	}
 
-	getChatEmoticonsBySet(emoteset) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			let qs = {};
-			if (emoteset) qs.emoteset = emoteset;
-			request.url = this.URLMaker(["chat", "emoticon_images"], qs);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getChatEmoticonsBySet(emoteset) {
+		let request = this.baseRequest;
+		let qs = {};
+		if (emoteset) qs.emoteset = emoteset;
+		request.url = this.URLMaker(["chat", "emoticon_images"], qs);
+		return api(request);
 	}
 
-	getAllChatEmoticons() {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["chat", "emoticons"]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getAllChatEmoticons() {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["chat", "emoticons"]);
+		return api(request);
 	}
 	
-	getClip(slug) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			request.url = this.URLMaker(["clips", slug]);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getClip(slug) {
+		let request = this.baseRequest;
+		request.url = this.URLMaker(["clips", slug]);
+		return api(request);
 	}
 
-	getTopClips(channelNames,games,languages,period,trending,cursor) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			let qs = { limit: 100 };
-			if (Array.isArray(channelNames)) qs.channel = channelNames.join(",");
-			if (typeof channelNames === "string") qs.channel = channelNames;
-			if (Array.isArray(games)) qs.game = games.join(",");
-			if (typeof games === "string") qs.game = games;
-			if (Array.isArray(languages)) qs.language = languages.join(",");
-			if (typeof languages === "string") qs.language = languages;
-			if (typeof trending !== "undefined") qs.trending = trending;
-			switch (period) {
-				case "day":
-				case "week":
-				case "month":
-				case "all":
-					qs.period = period;
-					break;
-			}
-			if (cursor) qs.cursor = cursor;
-			request.url = this.URLMaker(["clips", "top"], qs);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getTopClips(channelNames,games,languages,period,trending,cursor) {
+		let request = this.baseRequest;
+		let qs = { limit: 100 };
+		if (Array.isArray(channelNames)) qs.channel = channelNames.join(",");
+		if (typeof channelNames === "string") qs.channel = channelNames;
+		if (Array.isArray(games)) qs.game = games.join(",");
+		if (typeof games === "string") qs.game = games;
+		if (Array.isArray(languages)) qs.language = languages.join(",");
+		if (typeof languages === "string") qs.language = languages;
+		if (typeof trending !== "undefined") qs.trending = trending;
+		switch (period) {
+			case "day":
+			case "week":
+			case "month":
+			case "all":
+				qs.period = period;
+				break;
+		}
+		if (cursor) qs.cursor = cursor;
+		request.url = this.URLMaker(["clips", "top"], qs);
+		return api(request);
 	}
 
-	getFollowedClips(token, cursor, trending) {
-		return new Promise((resolve, reject) => {
-			let request = this.baseRequest;
-			let qs = {};
-			request.headers.Authorization = "OAuth " + token;
-			if (cursor) qs.cursor = cursor;
-			if (typeof trending !== "undefined") qs.trending = trending;
-			request.url = this.URLMaker(["clips", "followed"], qs);
-			this.processAPIRequest(request, resolve, reject);
-		});
+	async getFollowedClips(token, cursor, trending) {
+		let request = this.baseRequest;
+		let qs = {};
+		request.headers.Authorization = "OAuth " + token;
+		if (cursor) qs.cursor = cursor;
+		if (typeof trending !== "undefined") qs.trending = trending;
+		request.url = this.URLMaker(["clips", "followed"], qs);
+		return api(request);
 	}
 
 	NewAPIURLMaker(endpoint, querystring = {}) {
@@ -465,38 +390,37 @@ class TwitchAPI extends EventEmitter {
 		return URL;
 	}
 
-	verifyTwitchJWT(token) {
-		return new Promise((resolve, reject) => {
-			this.getOIDCKeys().then((keys) => {
-				let key = keys[0];
-				let options = {
-					algorithms: [key.alg],
-					issuer: "Twitch"
-				};
-				jwt.verify(token, key.n, options, (err, decoded) => {
-					if (err) reject(err);
-					if (decoded) resolve(decoded);
-				});
-			});
+	AuthAPIURLMaker(endpoint, querystring = {}) {
+		let URL = "https://api.twitch.tv/api/" + endpoint.join("/");
+		if (Object.getOwnPropertyNames(querystring).length > 0) {
+			URL += "?";
+			let args = [];
+			for (let name in querystring) {
+				args.push(name + "=" + encodeURIComponent(querystring[name]));
+			}
+			URL += args.join("&");
+		}
+		return URL;
+	}
+
+	async verifyTwitchJWT(token) {
+		let keys = await this.getOIDCKeys();
+		jwt.verify(token, keys, (err, decoded) => {
+			if (err) throw(err);
+			if (decoded) return decoded;
 		});
 	}
 
-	getOIDCKeys() {
-		return new Promise((resolve, reject) => {
-			if (this.OIDCKeys) resolve(this.OIDCKeys);
-			let request = {
-				json: true,
-				method: "get",
-				url: "https://api.twitch.tv/api/oidc/keys"
-			};
-			api(request, (err, res, body) => {
-				if (err) reject(err);
-				if (body) {
-					this.OIDCKeys = body;
-					resolve(body);
-				}
-			});
-		});
+	async getOIDCKeys() {
+		if (this.OIDCKeys) return this.OIDCKeys;
+		let request = {
+			json: true,
+			method: "get",
+			url: "https://api.twitch.tv/api/oidc/keys"
+		};
+		let body = await api(request);
+		this.OIDCKeys = jwk(body.keys[0]);
+		return this.OIDCKeys;
 	}
 
 	tokenURL(scopes, state, nonce) {
@@ -510,13 +434,6 @@ class TwitchAPI extends EventEmitter {
 		if (state) qs.state = state;
 		if (nonce) qs.nonce = nonce;
 		return this.URLMaker(["oauth2","authorize"], qs);
-		/* return "https://api.twitch.tv/kraken/oauth2/authorize" +
-			"?response_type=code" +
-			"&client_id=" + this.clientID +
-			"&redirect_uri=" + encodeURIComponent(this.redirectURL) +
-			"&scope=" + encodeURIComponent(scopes.join(" ")) +
-			"&state=" + state;
-		*/
 	}
 
 	// Emit a code letting everything else know we need auth, and warn the user in the log.
@@ -526,53 +443,51 @@ class TwitchAPI extends EventEmitter {
 	}
 	
 	// When we recieve a token (for this instance only)
-	completeToken(code, state, nonce) {
+	async completeToken(code, state, nonce) {
 		log.debug("Received token code", code);
-		return new Promise((resolve, reject) => {
-			api({
-				method: "POST",
-				url: this.URLMaker(["oauth2", "token"], {}),
-				json: true,
-				headers: {
-					"Accept": "application/vnd.twitchtv.v5+json",
-					"Authorization": "OAuth" + this.oAuthToken,
-					"Client-ID": this.clientID
-				},
-				qs: {
-					"client_id": this.clientID,
-					"client_secret": Secrets.clientSecret,
-					"grant_type": "authorization_code",
-					"redirect_uri": this.redirectURL,
-					"code": code,
+		let body = await api({
+			method: "POST",
+			url: this.AuthAPIURLMaker(["oauth2", "token"], {}),
+			json: true,
+			qs: {
+				"client_id": this.clientID,
+				"client_secret": Secrets.clientSecret,
+				"grant_type": "authorization_code",
+				"redirect_uri": this.redirectURL,
+				"code": code,
+			}
+		});
+		if (body && body.access_token) {
+			log.debug("oAuth2 token result: %s",JSON.stringify(body));
+			if (state == "TMILogin") {
+				return this.getMyTokenDetails(body.access_token);
+			} else {
+				try {
+					let jwtToken = await this.verifyTwitchJWT(body["id_token"]);
+					if (jwtToken.nonce == nonce) {
+						let token = await this.getTokenDetails(body.access_token);
+						this.emit("TokenReceieved", token);
+						return { token: token, valid: true };
+					}					
+				} catch(e) {
+					log.debug("JWT Verification failed: %s", JSON.stringify(e));
+					throw e;
 				}
-			}, (err, res, body) => {
-				if (body && body.access_token) {
-					if (state == "TMILogin") {
-						this.getMyTokenDetails(body.access_token);
-					} else {
-						this.verifyTwitchJWT(body["id_token"]).then((jwtToken) => {
-							if (jwtToken.nonce == nonce) this.getTokenDetails(body.access_token).then((token) => {
-								this.emit("TokenReceieved", token);
-								resolve({ token: token, valid: true });
-							});
-							else reject("Incorrect Nonce");
-						}).catch((err) => {
-							reject(err);
-						});
-					}
-				} else if (body) {
-					reject(body);
-				} else {
-					reject(err);
-				}
-			});
-		});	
-	}
-	hasToken() {
-		if (!this.tokenIsValid) {
-			// Do something
+			}
 		}
-		return this.tokenIsValid;
+	}
+	async refreshToken(refreshToken) {
+		return api({
+			method: "POST",
+			url: this.URLMaker(["oauth2", "token"], {}),
+			json: true,
+			qs: {
+				"client_id": this.clientID,
+				"client_secret": Secrets.clientSecret,
+				"grant_type": "refresh_token",
+				"refresh_token": refreshToken,
+			}
+		});
 	}
 }
 log.info("Making a TwitchAPI");
