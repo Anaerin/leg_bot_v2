@@ -20,7 +20,7 @@ const EventEmitter = require("events");
 const log = require("./log.js");
 const jwt = require("jsonwebtoken");
 const jwk = require("jwk-to-pem");
-const DB = require("../db");
+const DB = require("../db/index.js");
 /* Welcome to the Twitch class.
  * This fun little class will attempt to authenticate a token with Twitch
  * So we can connect with tmi.
@@ -56,11 +56,11 @@ class TwitchAPI extends EventEmitter {
 			"broadcaster_type": "broadcasterType",
 			description: "description",
 			"display_name": "displayName",
-			"id": "userID",
+			"id": "twitchUserID",
 			"login": "userName",
 			"offline_image_url": "offlineImageURL",
 			"profile_image_url": "profileImageURL",
-			type: "type",
+			type: "userType",
 			"view_count": "viewCount"
 		};
 		// If the settings are loaded, load the token details.
@@ -126,25 +126,34 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	async getUserByID(userID) {
-		let [foundUser, created] = await DB.models.User.findOrCreate({where: { userID: userID }, defaults: { userID: userID }});
-		if (Array.isArray(foundUser)) foundUser = foundUser[0];
+		log.debug("Searching for, or creating, user with ID %s",userID);
+		//let created = false;
+		//let foundUser = await DB.models.User.findOne({ where: {	twitchUserID: userID }});
+		let [foundUser, created] = await DB.models.User.findOrCreate({
+			where: { twitchUserID: userID }, 
+			defaults: { twitchUserID: userID }, 
+			include: ["LastSeenChannel"]
+		});
 		if (created || Date.parse(foundUser.lastQueried) < (Date.now() - 43200000)) {
 			let userData = await this.getFromNewAPI(["users"],{id: userID});
 			userData = userData.data[0];
 			if (foundUser.userName && foundUser.userName != userData.login) {
-				DB.models.UserHistory.create({
-					userOD: userData.id,
+				let createdHistory = await DB.models.UserHistory.create({
+					userID: userData.id,
 					timeChanged: Date.now(),
 					oldUserName: foundUser.userName
-				}).then((createdHistory) => {
-					foundUser.addUserHistory(createdHistory);
 				});
+				foundUser.addUserHistory(createdHistory);
+				this.emit("NewUsername", foundUser.userName, userData.id, userData.login);
+				this.emit("NewUsername" + foundUser.userName, userData.id, userData.login);
 			}
 			for (let response in this.twitchResponseMapping) {
 				foundUser[this.twitchResponseMapping[response]] = userData[response];
 			}
 			foundUser.lastQueried = Date.now();
-			return userData.save();
+			return foundUser.save();
+		} else if (foundUser) {
+			return foundUser;
 		}
 	}
 
@@ -158,7 +167,10 @@ class TwitchAPI extends EventEmitter {
 				foundUser[this.twitchResponseMapping[response]] = userData[response];
 			}
 			foundUser.lastQueried = Date.now();
-			return foundUser.save();
+			foundUser.save();
+			return foundUser;
+		} else if (foundUser) {
+			return foundUser;
 		}
 	}
 
@@ -334,10 +346,10 @@ class TwitchAPI extends EventEmitter {
 	async getTopClips(channelNames,games,languages,period,trending,cursor) {
 		let request = this.baseRequest;
 		let qs = { limit: 100 };
-		if (Array.isArray(channelNames)) qs.channel = channelNames.join(",");
-		if (typeof channelNames === "string") qs.channel = channelNames;
-		if (Array.isArray(games)) qs.game = games.join(",");
-		if (typeof games === "string") qs.game = games;
+		if (Array.isArray(channelNames)) channelNames = channelNames.join(",");
+		qs.channel = channelNames;
+		if (Array.isArray(games)) games = games.join(",");
+		qs.game = games;
 		if (Array.isArray(languages)) qs.language = languages.join(",");
 		if (typeof languages === "string") qs.language = languages;
 		if (typeof trending !== "undefined") qs.trending = trending;

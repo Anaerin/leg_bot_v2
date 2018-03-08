@@ -9,9 +9,6 @@ import { Model, DataType } from 'sequelize';
 */
 
 module.exports = class AntiSpam extends Model {
-	constructor() {
-		super();
-	}
 	static init(sequelize) {
 		super.init({
 			id: {

@@ -70,7 +70,7 @@ class tmiClient extends EventEmitter {
 			if (!self) {
 				let displayName = userstate["display-name"];
 				if (!displayName) displayName = userstate["username"];
-				log.debug("CHAT: userstate looks like this: %s",userstate);
+				log.debug("CHAT: userstate looks like this: %s",JSON.stringify(userstate));
 				log.debug("CHAT: %s just said \"%s\" in our channel!",userstate["display-name"],message);
 			}
 		});
@@ -149,24 +149,39 @@ class tmiClient extends EventEmitter {
 		});
 		this.client.on("chat", this.onChat.bind(this));
 		this.client.on("join", this.onJoin.bind(this));
+		this.client.on("NewUsername", this.onNewUsername.bind(this));
+		this.client.on("Action", this.onAction.bind(this));
+	}
+	async onAction(channel, userstate, message, self) {
+		if (!self) {
+			if (message.includes("has donated") && this.client.isMod(channel, this.userName)) {
+				//Seriously? People try this still?
+				this.client.timeout(channel, userstate.username, 300, "Nobody falls for the 'Has Donated' scam");
+			}
+		}
+	}
+	async onNewUsername(oldUserName, twitchUserID, newUserName) {
+		if (this.channels.hasOwnProperty(oldUserName)) {
+			let userObj = await Twitch.getUserByID(twitchUserID);
+			await this.client.part("#" + oldUserName);
+			if (this.channels[oldUserName].teardown) this.channels[oldUserName].teardown();
+			delete this.channels[oldUserName];
+			this.channels[newUserName] = userObj;
+			await this.client.join("#" + newUserName);
+		}
 	}
 	onEvent(event) {
 		let args = [...arguments];
 		args.shift();
-		setImmediate(() => {
-			// And emit an event for this event and channel combination.
-			this.emit(event, ...args);
-		}, ...args);
-		
+		// And emit an event for this event and channel combination.
+		this.emit(event, ...args);
 	}
 	onChannelEvent(event) {
 		let args = [...arguments];
 		args.shift();
-		setImmediate(() => {
-			// And emit an event for this event and channel combination.
-			log.debug("EVENT: %s", args[0] + " " + event);
-			this.emit(args[0] + " " + event, ...args);
-		}, ...args);
+		// And emit an event for this event and channel combination.
+		//log.debug("EVENT: %s", args[0] + " " + event);
+		this.emit(args[0] + " " + event, ...args);
 	}
 	onJoin(channel, username, self) {
 		if (self) {
@@ -182,7 +197,7 @@ class tmiClient extends EventEmitter {
 			}
 		}
 	}
-	onChat(channel, userstate, message, self) {
+	async onChat(channel, userstate, message, self) {
 		if (!self) {
 			// If this isn't me...
 			if (!userstate["mod"] && this.client.isMod(this.userName)) {
@@ -210,24 +225,26 @@ class tmiClient extends EventEmitter {
 			}
 
 			// Let's update the seen record.
-			Twitch.getUserByID(userstate["user-id"]).then((user) => {
-				if (!user) {
-					let linkRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
-					if (linkRegex.test(message)) {
-						if (this.client.isMod(this.userName)) {
-							this.client.timeout(channel, userstate.username, 5, "Antispam: Previously unseen user posting a link");
-						}
-					} else {
-						Twitch.getUserByName(channel.substring(1)).then((channelObj) => {
-							user.setLastSeenChannel(channelObj);
-						});
+			let user = await Twitch.getUserByID(userstate["user-id"]);
+			log.debug("Client just got %s", JSON.stringify(user));
+			if (!user.lastSeen) {
+				let linkRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
+				if (linkRegex.test(message)) {
+					if (this.client.isMod(this.userName)) {
+						this.client.timeout(channel, userstate.username, 5, "Antispam: Previously unseen user posting a link");
 					}
 				} else {
-					Twitch.getUserByName(channel.substring(1)).then((channelObj) => {
-						user.setLastSeenChannel(channelObj);
-					});
+					let channelObj;
+					if (userstate["room-id"]) channelObj = await Twitch.getUserByID(userstate["room-id"]);
+					else channelObj = await Twitch.getUserByName(channel.substring(1));
+					user.lastSeen = Date.now();
+					user.setLastSeenChannel(channelObj);
 				}
-			});
+			} else {
+				let channelObj = await Twitch.getUserByName(channel.substring(1));
+				user.lastSeen = Date.now();
+				user.setLastSeenChannel(channelObj);
+			}
 		}
 		if (!self) {
 			// I don't care what I said.

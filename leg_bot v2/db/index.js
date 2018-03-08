@@ -29,7 +29,9 @@ switch (dbConfig.DBType) {
 		options = {
 			dialect: "sqlite",
 			storage: dbConfig.DBFile,
-			logging: (msg) => log.debug(msg),
+			logging: (msg) => {
+				log.debug(msg);
+			},
 			timestamps: false,
 			// sqlite does not support multiple connections. Make sure the connection pool only has 1 connection.
 			pool: {
@@ -73,8 +75,10 @@ items.forEach(item => {
 });
 Plugins.initializeDB(DB);
 for (let model in Models) {
-	log.info("Setting DB relations for model %s", model);
-	if (Models[model].relation) Models[model].relation(DB.models);
+	if (Models[model].relation) {
+		log.info("Setting DB relations for model %s", model);
+		Models[model].relation(DB.models);
+	}
 }
 Plugins.setupDBRelations(DB);
 log.info("Syncing DB");
