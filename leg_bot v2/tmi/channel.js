@@ -1,75 +1,115 @@
 "use strict";
-const log = require("../lib/log.js");
+//const DB = require("../db");
+//const Twitch = require("../lib/Twitch");
 const EventEmitter = require("events");
-//const Plugins = require("../lib/plugins");
-const tmi = require("./client.js");
-const Settings = require("../lib/settings.js");
-
+const Plugins = require("../lib/plugins");
+const log = require("../lib/log");
 module.exports = class Channel extends EventEmitter {
-	constructor(client, channel) {
+	constructor(channelName, channelDBObj, client) {
 		super();
-		log.debug("Constructing channel for %s", channel.name);
-		this.channelName = channel.name;
-		this.channelID = channel.channelID;
-		const eventList = [
-			"Action",
-			"Ban",
-			"Chat",
-			"Cheer",
-			"ClearChat",
-			"EmoteOnly",
-			"FollowersOnly",
-			"Hosted",
-			"Hosting",
-			"Join",
-			"Message",
-			"Mod",
-			"Mods",
-			"Notice",
-			"Part",
-			"R9kBeta",
-			"ReSub",
-			"RoomState",
-			"ServerChange",
-			"SlowMode",
-			"Subscription",
-			"Timeout",
-			"Unhost",
-			"Unmod"
-		];
-		eventList.forEach((eventName) => {
-			tmi.on(this.channelName + " " + eventName, () => {
-				this.onEvent(eventName, ...arguments);
+		this.client = client;
+		this.user = channelDBObj;
+		this.channelName = channelName;
+		this.settings = this.user.getSettings();
+		this.settingMap = this.setupSettingMap();
+		this.plugins = {};
+		this.initializePlugins();
+		this.whisper = this.client.client.whisper;
+		this.join();
+	}
+	async join() {
+		if (this.client.client.readyState == "OPEN") {
+			try {
+				log.debug("Joining %s", this.channelName);
+				await this.client.client.join("#" + this.channelName);
+			} catch (e) {
+				log.debug("Error joining: %s", e);
+			}
+		} else {
+			this.client.client.once("connected", async () => {
+				try {
+					log.debug("Joining %s on event", this.channelName);
+					await this.client.client.join("#" + this.channelName);
+				} catch (e) {
+					log.debug("Error joining on connected: %s", e);
+				}
 			});
+		}
+	}
+	async action(message) {
+		return this.client.client.action("#" + this.channelName, message);
+	}
+	async ban(username, reason) {
+		return this.client.client.ban("#" + this.channelName, username, reason);
+	}
+	async clear() {
+		return this.client.client.clear("#" + this.channelName);
+	}
+	async emoteonly() {
+		return this.client.client.emoteonly("#" + this.channelName);
+	}
+	async emoteonlyoff() {
+		return this.client.client.emoteonlyoff("#" + this.channelName);
+	}
+	async followersonly(length) {
+		return this.client.client.followersonly("#" + this.channelName, length);
+	}
+	async followersonlyoff() {
+		return this.client.client.followersonlyoff("#" + this.channelName);
+	}
+	async mod(username) {
+		return this.client.client.mod("#" + this.channelName, username);
+	}
+	async mods() {
+		return this.client.client.mods("#" + this.channelName);
+	}
+	async r9kbeta() {
+		return this.client.client.r9kbeta("#" + this.channelName);
+	}
+	async r9kbetaoff() {
+		return this.client.client.r9kbetaoff("#" + this.channelName);
+	}
+	async say(message) {
+		return this.client.client.say("#" + this.channelName, message);
+	}
+	async slow(length = 300) {
+		return this.client.client.slow("#" + this.channelName, length);
+	}
+	async slowoff() {
+		return this.client.client.slowoff("#" + this.channelName);
+	}
+	async subscribers() {
+		return this.client.client.subscribers("#" + this.channelName);
+	}
+	async subscribersoff() {
+		return this.client.client.subscribersoff("#" + this.channelName);
+	}
+	async timeout(username, length = 300, reason) {
+		return this.client.client.timeout("#" + this.channelName, username, length, reason);
+	}
+	async unban(username) {
+		return this.client.client.unban("#" + this.channelName, username);
+	}
+	async unmod(username) {
+		return this.client.client.unmod("#" + this.channelName, username);
+	}
+
+	async setupSettingMap() {
+		let settings = await this.settings;
+		return new Promise((resolve) => {
+			let settingMap = new Map();
+			settings.forEach((setting) => {
+				settingMap.set(setting.name, setting);
+			});
+			resolve(settingMap);
 		});
 	}
-	onEvent() {
-		let args = arguments;
-		let event = args.shift();
-		let channel = args.shift();
-		if (channel == this.channelName) this.emit(event, ...args);
-	}
-	/* onCommand(command, channel, userState, message, self) {
-		//
-	} */
-	onChat(channel, userState, message, self) {
-		if (channel == this.channelName) {
-			this.emit("onChat", userState, message, self);
-			if (!self) {
-				if (String(message).startsWith(Settings.CommandPrefix)) {
-					let command = String(message).match("$" + Settings.CommandPrefix + "(\\w+)");
-					if (command.length > 0) {
-						this.emit("onCommand", command[0], ...arguments);
-						this.emit("onCommand " + command[0], ...arguments);
-					}
-				}
+	async initializePlugins() {
+		let settingMap = await this.settingMap;
+		Plugins.forEach((plugin) => {
+			if (settingMap.has(plugin.name) && settingMap.get(plugin.name).value == "true") {
+				this.plugins[plugin.name] = new plugin(this);
 			}
-		}
-	}
-	onCheer(channel, userState, message) {
-		if (channel == this.channelName) {
-
-			this.emit("onCheer", userState, message);
-		}
+		});
 	}
 };

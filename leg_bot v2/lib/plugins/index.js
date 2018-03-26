@@ -13,7 +13,7 @@ class pluginHandler extends EventEmitter {
 		log.debug("Loading plugins...");
 		items.forEach(item => {
 			if (!item.endsWith(".js")) {
-				log.debug("Loading plugin %s...",item);
+				log.debug("Loading plugin %s...", item);
 				let plugin = require("./" + item);
 				this.register(item, plugin);
 			}

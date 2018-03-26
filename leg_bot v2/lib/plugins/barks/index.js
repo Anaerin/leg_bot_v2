@@ -6,9 +6,6 @@ const Sequelize = require("sequelize");
 const DataType = Sequelize.DataTypes;
 
 class Bark extends Sequelize.Model {
-	constructor() {
-		super();
-	}
 	static init(sequelize) {
 		super.init({
 			id: {
@@ -34,7 +31,10 @@ class Bark extends Sequelize.Model {
 					isInt: true
 				}
 			}
-		}, { sequelize, timestamps: false });
+		}, {
+			sequelize,
+			timestamps: false
+		});
 
 	}
 	static relation(models) {
@@ -45,6 +45,7 @@ class Bark extends Sequelize.Model {
 class Barks extends Plugin {
 	constructor(client, channel) {
 		super(client, channel);
+
 	}
 	static get description() {
 		return "Allows simple responses to in-chat queries, or timed repeating of static messages";
@@ -53,23 +54,21 @@ class Barks extends Plugin {
 		return "Barks";
 	}
 	static get configuration() {
-		return [
-			{
-				name: "Barks",
-				type: "Custom",
-				controlFile: "barkList",
-				callback: "EditBarks"
-			}
-		];
+		return [{
+			name: "Barks",
+			type: "Custom",
+			controlFile: "barkList",
+			callback: "EditBarks"
+		}];
 	}
 	static initializeDB(DB) {
 		Bark.init(DB);
 	}
 	static setupDBRelations(DB) {
 		Bark.relation(DB.models);
-	}	
+	}
 	EditBarks() {
-		
+
 	}
 }
 module.exports = Barks;

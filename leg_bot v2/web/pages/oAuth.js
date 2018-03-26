@@ -3,16 +3,27 @@ const Twitch = require("../../lib/Twitch.js");
 const express = require("express");
 const Auth = require("../authentication.js");
 const log = require("../../lib/log.js");
-let app = module.exports = new express.Router({ mergeParams: true });
+let app = module.exports = new express.Router({
+	mergeParams: true
+});
 
-app.get("/$", (req, res) => {
+app.get("/$", async (req, res) => {
 	if (req.session.state === req.query.state) {
 		log.debug("Got Token with matching state. Accepting...");
-		Auth.AcceptToken(req, res);
+		try {
+			await Auth.AcceptToken(req, res);
+			if (req.session.returnURL) res.redirect(req.session.returnURL);
+			else res.redirect("/");
+		} catch (e) {
+			res.render("main", {
+				title: "Error",
+				content: "An error occurred while logging in. Please inform Anaerin\n<pre>" + e + "</pre>"
+			});
+		}
 	} else if (req.query.state === "TMILogin") {
 		Twitch.completeToken(req.query.code, req.query.state).then((token, valid) => {
-			if (valid) { 
-				res.redirect("/"); 
+			if (valid) {
+				res.redirect("/");
 			} else {
 				res.render("main", {
 					title: "Error",

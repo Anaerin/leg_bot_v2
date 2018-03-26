@@ -1,39 +1,50 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<% include partials/head %>
-	</head>
-	<body>
-		<header>
-			<% include partials/header %>
-		</header>
-		<form>
-			<div class="formItem">
-				<label for="enableFollow">Follow?</label>
-				<input type="checkbox" name="enableFollow" id="enableFollow" />
-			</div>
-			<div class="formItem">
-				<label for="enableJoin">Join your channel?</label>
-				<input type="checkbox" name="enableJoin" id="enableJoin"  onclick="document.getElementById('channelControls').classList.toggle('hidden',!this.checked);" />
-			</div>
-			<fieldset class="channelControls" id="channelControls">
-				<legend>Channel Plugins</legend>
-				<% plugins.forEach(function(plugin) { %>
-					<% let pluginName = plugin.name %>
-					<div class="formItem"><label for="enable<%=pluginName%>">Enable <%=pluginName%>?</label><input type="checkbox" name="enable<%=pluginName%>" id="enable<%=plugin.name%>" onclick="document.getElementById('fieldset<%=plugin.name%>').classList.toggle('hidden',!this.checked);" /></div>
+
+<head>
+	<% include partials/head %>
+</head>
+
+<body>
+	<header>
+		<% include partials/header %>
+	</header>
+	<form>
+		<div class="formItem">
+			<label for="enableFollow">Follow?</label>
+			<input type="checkbox" name="enableFollow" id="enableFollow" />
+		</div>
+		<div class="formItem">
+			<label for="enableJoin">Join your channel?</label>
+			<input type="checkbox" name="enableJoin" id="enableJoin" onclick="document.getElementById('channelControls').classList.toggle('hidden',!this.checked);"
+			/>
+		</div>
+		<fieldset class="channelControls" id="channelControls">
+			<legend>Channel Plugins</legend>
+			<% plugins.forEach(function(plugin) { %>
+				<% let pluginName = plugin.name %>
+					<div class="formItem">
+						<label for="enable<%=pluginName%>">Enable
+							<%=pluginName%>?</label>
+						<input type="checkbox" name="enable<%=pluginName%>" id="enable<%=plugin.name%>" onclick="document.getElementById('fieldset<%=plugin.name%>').classList.toggle('hidden',!this.checked);"
+						/>
+					</div>
 					<% if (plugin.options) { %>
-						<fieldset class="pluginControls" id="fieldset<%=pluginName%>" plugin="<%=pluginName%>"><legend><%=pluginName%> Options</legend>
-						<% plugin.options.forEach(function(option) { %>
-							<% if (option.type == "Custom") { %>
+						<fieldset class="pluginControls" id="fieldset<%=pluginName%>" plugin="<%=pluginName%>">
+							<legend>
+								<%=pluginName%> Options</legend>
+							<% plugin.options.forEach(function(option) { 
+								 if (option.type == "Custom") { %>
 								<%- include('../../lib/plugins/' + pluginName + '/' + option.controlFile, pluginName, option) %>
-							<% } else { %>
-								<%- include('partials/form/' + option.type, pluginName, option) %>
-							<% } %>
-						<% }) %>
-						</fieldset>				
-					<% } %>
-				<% }) %>
-			</fieldset>
-		</form>
-	</body>
+									<% } else { %>
+										<%- include('partials/form/' + option.type, pluginName, option) %>
+											<% }
+							}) %>
+						</fieldset>
+						<% } 
+			}) %>
+		</fieldset>
+	</form>
+</body>
+
 </html>

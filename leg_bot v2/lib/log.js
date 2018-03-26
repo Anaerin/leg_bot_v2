@@ -1,39 +1,9 @@
 "use strict";
-/*
-Node doesn't support ES6 imports.
-import winston from 'winston';
-*/
-
 var winston = require("winston");
 var isDebug = require("../config.js").debug;
 require("winston-daily-rotate-file");
 
-/* This is supposed to work, but I can't find documentation for it anywhere.
-Using the ES5 version until I can figure out how this is supposed to work.
-
-class Logger extends winston.Logger {
-	constructor() {
-		super();
-		this.transports = [
-			new (winston.transports.Console)({ json: false, timestamp: true }),
-			new (winston.transports.File)({
-				filename: __dirname + "../logs/debug.log",
-				json: false
-			})
-		];
-		this.exceptionHandlers = [
-			new (winston.transports.Console)({ json: false, timestamp: true }),
-			new (winston.transports.File)({
-				filename: __dirname + "../logs/debug.log",
-				json: false
-			})
-		]
-		this.exitOnError = false;
-	}
-}
-var log = new Logger();
-module.exports = log;
-*/
+/*
 winston.transports.Console.prototype.log = function (level, message, meta, callback) {
 	const output = require("winston/lib/winston/common").log(Object.assign({}, this, {
 		level,
@@ -43,19 +13,22 @@ winston.transports.Console.prototype.log = function (level, message, meta, callb
 	console[level in console ? level : "log"](output);
 	setImmediate(callback, null, true);
 };
+*/
+var logLevel = "warn";
+if (isDebug) logLevel = "debug";
 var log = new(winston.Logger)({
 	transports: [
 		new(winston.transports.Console)({
 			colorize: true,
 			json: false,
 			timestamp: true,
-			level: "debug"
+			level: logLevel
 		}),
 		new(winston.transports.DailyRotateFile)({
 			filename: "logs/debug.log",
 			datePattern: "yyyy-MM-dd.",
 			prepend: true,
-			level: "debug",
+			level: logLevel,
 			json: false
 		})
 	]
@@ -84,7 +57,7 @@ function addCallSite(logger) {
 		traceLine = traceLine.split("(")[1];
 		//traceLine = traceLine.substr(1 - traceLine.length);
 		if (traceLine.lastIndexOf(":") > 0) traceLine = traceLine.substr(0, traceLine.lastIndexOf(":"));
-		else traceLine = traceLine.substr(0, traceLine.lastIndexOf(")"))
+		else traceLine = traceLine.substr(0, traceLine.lastIndexOf(")"));
 		return traceLine;
 	}
 
@@ -103,5 +76,8 @@ function addCallSite(logger) {
 		})(logger[func]);
 	}
 }
+
+// Tracecaller is slow. Only enable if debug flag is present and set in config.
+
 if (isDebug) addCallSite(log);
 module.exports = log;

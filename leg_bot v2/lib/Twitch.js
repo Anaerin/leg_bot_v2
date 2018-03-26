@@ -28,7 +28,7 @@ const DB = require("../db/index.js");
  * And it contains an implementation for most Twitch API calls as a single function. */
 
 class TwitchAPI extends EventEmitter {
-	
+
 	// Build the object, including it's event emitter.
 	constructor() {
 		super();
@@ -65,9 +65,9 @@ class TwitchAPI extends EventEmitter {
 		};
 		// If the settings are loaded, load the token details.
 		// Otherwise, defer loading until the settings object says it's ready.
-		this.tryLoadToken();		
+		this.tryLoadToken();
 	}
-	
+
 	// Keep trying to load the token from settings.
 	tryLoadToken() {
 		log.info("Trying to load token");
@@ -77,7 +77,7 @@ class TwitchAPI extends EventEmitter {
 			setTimeout(() => {
 				this.tryLoadToken();
 			}, 1000);
-		}	
+		}
 	}
 
 	// Load the token, if it's valid, or prompt for auth.
@@ -112,13 +112,17 @@ class TwitchAPI extends EventEmitter {
 				Settings.userName = this.userName;
 				Settings.userID = this.userID;
 				Settings.oAuthToken = this.oAuthToken;
-				this.emit("GotValidToken", { token: this.oAuthToken, userName: this.userName, userID: this.userID });
+				this.emit("GotValidToken", {
+					token: this.oAuthToken,
+					userName: this.userName,
+					userID: this.userID
+				});
 			}
 		} catch (e) {
 			throw e;
 		}
 	}
-	
+
 	async getFromNewAPI(path, querystring = {}) {
 		let request = this.baseRequestNewAPI;
 		request.url = this.NewAPIURLMaker(path, querystring);
@@ -126,16 +130,21 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	async getUserByID(userID) {
-		log.debug("Searching for, or creating, user with ID %s",userID);
+		log.debug("Searching for, or creating, user with ID %s", userID);
 		//let created = false;
 		//let foundUser = await DB.models.User.findOne({ where: {	twitchUserID: userID }});
 		let [foundUser, created] = await DB.models.User.findOrCreate({
-			where: { twitchUserID: userID }, 
-			defaults: { twitchUserID: userID }, 
-			include: ["LastSeenChannel"]
+			where: {
+				twitchUserID: userID
+			},
+			defaults: {
+				twitchUserID: userID
+			}
 		});
 		if (created || Date.parse(foundUser.lastQueried) < (Date.now() - 43200000)) {
-			let userData = await this.getFromNewAPI(["users"],{id: userID});
+			let userData = await this.getFromNewAPI(["users"], {
+				id: userID
+			});
 			userData = userData.data[0];
 			if (foundUser.userName && foundUser.userName != userData.login) {
 				let createdHistory = await DB.models.UserHistory.create({
@@ -158,10 +167,19 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	async getUserByName(userName) {
-		let [foundUser, created] = await DB.models.User.findOrCreate({where: { userName: userName }, defaults: { userName: userName }});
+		let [foundUser, created] = await DB.models.User.findOrCreate({
+			where: {
+				userName: userName
+			},
+			defaults: {
+				userName: userName
+			}
+		});
 		if (Array.isArray(foundUser)) foundUser[0];
 		if (created || Date.parse(foundUser.lastQueried) < (Date.now() - 43200000)) {
-			let userData = await this.getFromNewAPI(["users"], {login: userName});
+			let userData = await this.getFromNewAPI(["users"], {
+				login: userName
+			});
 			userData = userData.data[0];
 			for (let response in this.twitchResponseMapping) {
 				foundUser[this.twitchResponseMapping[response]] = userData[response];
@@ -197,11 +215,11 @@ class TwitchAPI extends EventEmitter {
 				};
 			}
 		} else {
-			throw(body);
+			throw (body);
 		}
 
 	}
-	
+
 	async getChannel(token) {
 		let request = this.baseRequest;
 		request.url = this.URLMaker(["channel"]);
@@ -237,7 +255,9 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	async getChannelFollowers(ChannelID, cursor) {
-		let qs = { limit: 100 };
+		let qs = {
+			limit: 100
+		};
 		if (cursor) qs.cursor = cursor;
 		let request = this.baseRequest;
 		request.url = this.URLMaker(["channels", ChannelID, "follows"], qs);
@@ -252,7 +272,9 @@ class TwitchAPI extends EventEmitter {
 
 	async getChannelSubscribers(token, ChannelID, page) {
 		let request = this.baseRequest;
-		let qs = { limit: 100 };
+		let qs = {
+			limit: 100
+		};
 		if (page) qs.offset = page * 100;
 		request.url = this.URLMaker(["channels", ChannelID, "subscriptions"], qs);
 		request.headers.Authorization = "OAuth " + token;
@@ -267,7 +289,9 @@ class TwitchAPI extends EventEmitter {
 	}
 
 	async getChannelVideos(ChannelID, page, broadcast_type, language) {
-		let qs = { limit: 100 };
+		let qs = {
+			limit: 100
+		};
 		if (Array.isArray(broadcast_type)) qs.broadcast_type = broadcast_type.join(",");
 		if (typeof broadcast_type === "string") qs.broadcast_type = broadcast_type;
 		if (Array.isArray(language)) qs.language = language.join(",");
@@ -336,16 +360,18 @@ class TwitchAPI extends EventEmitter {
 		request.url = this.URLMaker(["chat", "emoticons"]);
 		return api(request);
 	}
-	
+
 	async getClip(slug) {
 		let request = this.baseRequest;
 		request.url = this.URLMaker(["clips", slug]);
 		return api(request);
 	}
 
-	async getTopClips(channelNames,games,languages,period,trending,cursor) {
+	async getTopClips(channelNames, games, languages, period, trending, cursor) {
 		let request = this.baseRequest;
-		let qs = { limit: 100 };
+		let qs = {
+			limit: 100
+		};
 		if (Array.isArray(channelNames)) channelNames = channelNames.join(",");
 		qs.channel = channelNames;
 		if (Array.isArray(games)) games = games.join(",");
@@ -417,8 +443,8 @@ class TwitchAPI extends EventEmitter {
 
 	async verifyTwitchJWT(token) {
 		let keys = await this.getOIDCKeys();
-		jwt.verify(token, keys, (err, decoded) => {
-			if (err) throw(err);
+		return jwt.verify(token, keys, (err, decoded) => {
+			if (err) throw (err);
 			if (decoded) return decoded;
 		});
 	}
@@ -445,7 +471,7 @@ class TwitchAPI extends EventEmitter {
 		};
 		if (state) qs.state = state;
 		if (nonce) qs.nonce = nonce;
-		return this.URLMaker(["oauth2","authorize"], qs);
+		return this.URLMaker(["oauth2", "authorize"], qs);
 	}
 
 	// Emit a code letting everything else know we need auth, and warn the user in the log.
@@ -453,7 +479,7 @@ class TwitchAPI extends EventEmitter {
 		this.emit("NeedToken", this.tokenURL(this.scopes, "TMILogin"));
 		log.warn("Please Authorize me by going to " + this.tokenURL(this.scopes, "TMILogin"));
 	}
-	
+
 	// When we recieve a token (for this instance only)
 	async completeToken(code, state, nonce) {
 		log.debug("Received token code", code);
@@ -470,7 +496,7 @@ class TwitchAPI extends EventEmitter {
 			}
 		});
 		if (body && body.access_token) {
-			log.debug("oAuth2 token result: %s",JSON.stringify(body));
+			log.debug("oAuth2 token result: %s", JSON.stringify(body));
 			if (state == "TMILogin") {
 				return this.getMyTokenDetails(body.access_token);
 			} else {
@@ -479,9 +505,16 @@ class TwitchAPI extends EventEmitter {
 					if (jwtToken.nonce == nonce) {
 						let token = await this.getTokenDetails(body.access_token);
 						this.emit("TokenReceieved", token);
-						return { token: token, valid: true };
-					}					
-				} catch(e) {
+						return {
+							token: token,
+							access_token: body.access_token,
+							refresh_token: body.refresh_token,
+							expires_in: body.expires_in,
+							scope: body.scope,
+							valid: true
+						};
+					}
+				} catch (e) {
 					log.debug("JWT Verification failed: %s", JSON.stringify(e));
 					throw e;
 				}

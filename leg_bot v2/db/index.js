@@ -6,6 +6,43 @@ var log = require("../lib/log.js");
 var Models = {};
 var Path = require("path");
 const Plugins = require("../lib/plugins");
+const Op = Sequelize.Op;
+const operatorsAliases = {
+	$eq: Op.eq,
+	$ne: Op.ne,
+	$gte: Op.gte,
+	$gt: Op.gt,
+	$lte: Op.lte,
+	$lt: Op.lt,
+	$not: Op.not,
+	$in: Op.in,
+	$notIn: Op.notIn,
+	$is: Op.is,
+	$like: Op.like,
+	$notLike: Op.notLike,
+	$iLike: Op.iLike,
+	$notILike: Op.notILike,
+	$regexp: Op.regexp,
+	$notRegexp: Op.notRegexp,
+	$iRegexp: Op.iRegexp,
+	$notIRegexp: Op.notIRegexp,
+	$between: Op.between,
+	$notBetween: Op.notBetween,
+	$overlap: Op.overlap,
+	$contains: Op.contains,
+	$contained: Op.contained,
+	$adjacent: Op.adjacent,
+	$strictLeft: Op.strictLeft,
+	$strictRight: Op.strictRight,
+	$noExtendRight: Op.noExtendRight,
+	$noExtendLeft: Op.noExtendLeft,
+	$and: Op.and,
+	$or: Op.or,
+	$any: Op.any,
+	$all: Op.all,
+	$values: Op.values,
+	$col: Op.col
+};
 
 /*
 import Channel from "./channel.js";
@@ -21,7 +58,8 @@ switch (dbConfig.DBType) {
 			dialect: "mysql",
 			host: dbConfig.DBHost,
 			logging: (msg) => log.debug(msg),
-			timestamps: false
+			timestamps: false,
+			operatorsAliases: operatorsAliases
 		};
 		DB = new Sequelize(dbConfig.DBFile, dbConfig.DBUsername, dbConfig.DBPassword, options);
 		break;
@@ -30,7 +68,7 @@ switch (dbConfig.DBType) {
 			dialect: "sqlite",
 			storage: dbConfig.DBFile,
 			logging: (msg) => {
-				log.debug(msg);
+				log.info(msg);
 			},
 			timestamps: false,
 			// sqlite does not support multiple connections. Make sure the connection pool only has 1 connection.
@@ -45,7 +83,8 @@ switch (dbConfig.DBType) {
 				match: [
 					"SQLITE_BUSY: database is locked"
 				]
-			}
+			},
+			operatorsAliases: operatorsAliases
 		};
 		DB = new Sequelize("", "", "", options);
 		break;
@@ -82,6 +121,8 @@ for (let model in Models) {
 }
 Plugins.setupDBRelations(DB);
 log.info("Syncing DB");
-DB.sync({ alter: false });
+DB.sync({
+	alter: false
+});
 log.info("DB Synced");
 module.exports = DB;
