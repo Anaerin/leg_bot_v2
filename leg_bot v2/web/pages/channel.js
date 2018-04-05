@@ -27,7 +27,7 @@ app.get("/$", async (req, res, next) => {
 app.get("/$", async (req, res) => {
 	log.debug("Rendering page.");
 	let configurations = Plugins.configuration;
-	let user = res.session.user;
+	let user = req.session.user;
 	let userSettings = await user.getSettings();
 	let settings = {};
 	userSettings.forEach((setting) => {

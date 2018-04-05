@@ -15,7 +15,6 @@ let app = module.exports = new express.Router({
 app.get("/$", (req, res) => {
 	let lastPage = req.query.to;
 	if (lastPage) req.session.returnURL = lastPage;
-	log.debug("Logging in user, returning them to %s", lastPage);
 	// Make sure something is set in the session, so it saves.
 	req.session.loggingIn = true;
 	let nonce = "";
@@ -27,6 +26,6 @@ app.get("/$", (req, res) => {
 	}
 	req.session.nonce = nonce;
 	req.session.state = state;
-
+	log.debug("Details saved in session, sending user to Twitch to Auth.");
 	res.redirect(Twitch.tokenURL(["openid"], req.session.state, req.session.nonce));
 });

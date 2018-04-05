@@ -34,6 +34,16 @@
 		"semi": [
 			"error",
 			"always"
+		],
+		"array-bracket-newline": {
+			"multiline": true
+		},
+		"brace-style": [
+			"error",
+			"1tbs",
+			{
+				"allowSingleLine": true
+			}
 		]
 	}
 }

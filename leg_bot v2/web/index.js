@@ -8,6 +8,8 @@ const session = require("express-session");
 const DB = require("../db/index.js");
 const secrets = require("../secrets.js");
 const path = require("path");
+const plugins = require("../lib/plugins");
+const Twitch = require("../lib/Twitch");
 
 let app = express();
 let SequelizeStore = require("connect-session-sequelize")(session.Store);
@@ -26,24 +28,48 @@ app.use(session({
 	resave: false
 }));
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
 	log.debug("Session.loggedIn = %s", req.session.loggedIn);
 	if (req.session.loggedIn) {
-		//res.locals.loggedIn = true;
+		// Apparently, sequelize objects don't like being persisted through req.session.
+		// So re-create/query it each time. I guess.
+		let userID = req.session.user.twitchUserID;
+		req.session.user = await Twitch.getUserByID(userID);
 		//res.locals.user = req.session.user;
-		res.locals.menu = [
-			{ name: "Home", url: "/" },
-			{ name: "Channel", url: "/channel" },
-			{ name: "Logout", url: "/logout" }
+		res.locals.menu = [{
+				name: "Home",
+				url: "/"
+			},
+			{
+				name: "Channel",
+				url: "/channel"
+			},
+			{
+				name: "Logout",
+				url: "/logout"
+			}
 		];
 	} else {
 		res.locals.loggedIn = false;
-		res.locals.menu = [
-			{ name: "Home", url: "/" },
-			{ name: "Login", url: "/login" }
+		res.locals.menu = [{
+				name: "Home",
+				url: "/"
+			},
+			{
+				name: "Login",
+				url: "/login"
+			}
 		];
 	}
 	return next();
+});
+
+plugins.forEach((plugin) => {
+	if (plugin.webMenu) app.use((req, res, next) => {
+		res.locals.menu = res.locals.menu.concat(plugin.webMenu);
+		return next();
+	});
+	if (plugin.webPages) app.use("/" + plugin.name.toLowerCase(), plugin.webPages);
 });
 
 app.use("/", require("./pages"));

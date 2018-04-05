@@ -205,13 +205,15 @@ class TwitchAPI extends EventEmitter {
 					token: token,
 					userName: body.token.user_name,
 					userID: body.token.user_id,
-					scopes: body.token.authorization.scopes
+					scopes: body.token.authorization.scopes,
+					valid: body.token.valid
 				};
 			} else {
 				return {
 					token: token,
 					userName: body.token.user_name,
 					userID: body.token.user_id,
+					valid: body.token.valid
 				};
 			}
 		} else {

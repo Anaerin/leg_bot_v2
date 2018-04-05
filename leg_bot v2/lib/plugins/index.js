@@ -36,6 +36,9 @@ class pluginHandler extends EventEmitter {
 	forEach(callback) {
 		this.plugins.forEach(callback);
 	}
+	has(name) {
+		return this.plugins.has(name);
+	}
 	get configuration() {
 		let confs = [];
 		this.plugins.forEach((plugin) => {

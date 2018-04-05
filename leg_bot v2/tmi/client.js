@@ -223,16 +223,16 @@ class tmiClient extends EventEmitter {
 		this.emit(event, ...args);
 	}
 	onChannelEvent(event) {
-		let args = [...arguments];
-		args.shift(); // remove the event name.
-		let channel = args.shift().substring(1); // Grab the channel name and remove it too.
+		// Get the event name, channel name and arguments.
+		let [eventName, channel, ...args] = arguments;
+
 		// And emit an event for this event and channel combination.
 		this.emit(channel + " " + event, ...args); // Events are almost free. Still, might want to remove this at some point.
 		// If we've set up a channel for this event...
 		if (this.channels.hasOwnProperty(channel) && this.channels[channel].channel) {
 			// Use that channel object to emit the event in question.
 			this.channels[channel].channel.emit(event, ...args);
-		} else log.warning("Got event %s for channel %s when channel wasn't ready", event, channel);
+		} else log.warn("Got event %s for channel %s when channel wasn't ready", event, channel);
 	}
 	async onJoin(channel, username, self) {
 		/* 
@@ -263,12 +263,13 @@ class tmiClient extends EventEmitter {
 		let args = [...arguments];
 		args.shift();
 		if (message.startsWith(Settings.CommandPrefix)) {
-			let messageSplit = message.split(" ", 1)[0].substring(Settings.CommandPrefix.length).toLowerCase();
-			log.debug("Command received: %s", messageSplit);
-			this.emit("Command " + messageSplit, ...arguments);
-			this.emit("Command " + chan + " " + messageSplit, ...args);
+			let [command, messageSplit] = message.split(" ");
+			command = command.substring(Settings.CommandPrefix.length).toLowerCase;
+			log.debug("Command received: %s", command);
+			this.emit("Command " + command, messageSplit.join(" "), ...arguments);
+			this.emit("Command " + chan + " " + command, messageSplit.join(" "), ...args);
 			if (this.channels.hasOwnProperty(chan) && this.channels[chan].channel) {
-				this.channels[chan].channel.emit("Command " + messageSplit, ...args);
+				this.channels[chan].channel.emit("Command " + command, messageSplit.join(" "), ...args);
 			}
 		}
 	}
